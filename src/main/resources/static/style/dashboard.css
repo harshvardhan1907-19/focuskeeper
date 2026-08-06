@@ -275,7 +275,8 @@
    STATS & PROFILE INFO
    ======================================== */
 
-.stats p, #profileInfo p {
+.stats p,
+#profileInfo p {
     padding: 15px 0;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     display: flex;
@@ -287,16 +288,20 @@
 }
 
 @media (prefers-color-scheme: dark) {
-    .stats p, #profileInfo p {
+
+    .stats p,
+    #profileInfo p {
         border-bottom-color: rgba(255, 255, 255, 0.05);
     }
 }
 
-.stats p:last-child, #profileInfo p:last-child {
+.stats p:last-child,
+#profileInfo p:last-child {
     border-bottom: none;
 }
 
-.stats span, #profileInfo span {
+.stats span,
+#profileInfo span {
     font-weight: 700;
     color: var(--text-primary);
     font-size: 16px;
@@ -356,5 +361,116 @@
 
     .duration-input-group input {
         max-width: 90px;
+    }
+}
+
+
+/* ========================================
+   SESSION HISTORY TABLE
+   ======================================== */
+
+#sessionHistoryContainer {
+    width: 100%;
+    overflow-x: auto;
+}
+
+#sessionHistoryList {
+    margin: 10px 0;
+}
+
+.session-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.session-table th {
+    background: #4CAF50;
+    color: white;
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 500;
+}
+
+.session-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.session-table tr:hover {
+    background: #f0f8f0;
+}
+
+.session-table .completed {
+    color: #27ae60;
+    font-weight: 500;
+}
+
+.session-table .pending {
+    color: #f39c12;
+    font-weight: 500;
+}
+
+.session-table .session-type {
+    background: #e9ecef;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.session-table .type-POMODORO {
+    background: #4CAF50;
+    color: white;
+}
+
+.session-table .type-SHORT_BREAK {
+    background: #3498db;
+    color: white;
+}
+
+.session-table .type-LONG_BREAK {
+    background: #9b59b6;
+    color: white;
+}
+
+.no-sessions {
+    text-align: center;
+    color: #999;
+    padding: 30px 0;
+    font-size: 16px;
+}
+
+.no-sessions .emoji {
+    font-size: 48px;
+    display: block;
+    margin-bottom: 10px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .session-table {
+        font-size: 12px;
+    }
+
+    .session-table th,
+    .session-table td {
+        padding: 6px 8px;
+    }
+
+    .session-table .session-type {
+        font-size: 10px;
+        padding: 2px 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .session-table {
+        font-size: 11px;
+    }
+
+    .session-table th,
+    .session-table td {
+        padding: 4px 6px;
     }
 }

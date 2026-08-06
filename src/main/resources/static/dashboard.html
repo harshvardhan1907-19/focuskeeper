@@ -15,7 +15,12 @@
     <div id="app">
         <header>
             <h1>🎯 FocusKeeper</h1>
-            <nav>
+            <div class="menu-toggle" id="mobile-menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <nav id="nav-menu">
                 <a href="/dashboard.html">Dashboard</a>
                 <a href="#" id="logoutLink">Logout</a>
             </nav>
@@ -64,6 +69,23 @@
                         <div class="stats">
                             <p>Focus Sessions: <span id="sessionCount">0</span></p>
                             <p>Total Minutes: <span id="totalMinutes">0</span></p>
+                        </div>
+                    </div>
+
+                    <!-- Session History Card -->
+                    <div class="dashboard-card" style="grid-column: 1 / -1;">
+                        <h3>📋 Session History</h3>
+                        <div id="sessionHistoryContainer">
+                            <div id="sessionHistoryList">
+                                <p style="color: #999; text-align: center;">Loading sessions...</p>
+                            </div>
+                            <div id="sessionSummary"
+                                style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e9ecef;">
+                                <p style="text-align: center; color: #666;">
+                                    <span id="totalSessionsDisplay">0</span> sessions |
+                                    <span id="totalMinutesDisplay">0</span> minutes total
+                                </p>
+                            </div>
                         </div>
                     </div>
 

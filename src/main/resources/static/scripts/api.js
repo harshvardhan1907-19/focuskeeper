@@ -1,3 +1,7 @@
+// ========================================
+// API.JS - API calls with JWT authentication
+// ========================================
+
 // Get JWT token
 function getToken() {
     return localStorage.getItem('token');
@@ -121,6 +125,12 @@ async function completeSession(sessionId) {
 async function getUserProfile(userId) {
     console.log('👤 Fetching profile for user:', userId);
     return fetchAPI(`/users/${userId}`);
+}
+
+
+async function getUserSessions(userId) {
+    console.log('📋 Fetching sessions for user:', userId);
+    return fetchAPI(`/sessions/user/${userId}`);
 }
 
 console.log('✅ api.js loaded');

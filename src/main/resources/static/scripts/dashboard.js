@@ -1,11 +1,3 @@
-// ========================================
-// DASHBOARD.JS - Dashboard functionality
-// ========================================
-
-// ========================================
-// AUTH FUNCTIONS
-// ========================================
-
 function getLoggedInUser() {
     const userData = localStorage.getItem('user');
     return userData ? JSON.parse(userData) : null;
@@ -70,8 +62,8 @@ async function loadDashboard() {
     const profileJoined = document.getElementById('profileJoined');
     if (profileJoined) profileJoined.textContent = formatDate(user.createdAt);
 
-    // Load stats from database
     await loadStats();
+    await loadSessionHistory();
 
     // Update session status
     const sessionStatus = document.getElementById('sessionStatus');
@@ -111,6 +103,101 @@ async function loadStats() {
             statusEl.textContent = '⚠️ Could not load stats. Please refresh.';
             statusEl.style.color = '#e74c3c';
         }
+    }
+}
+
+
+// ========================================
+// SESSION HISTORY
+// ========================================
+
+async function loadSessionHistory() {
+    try {
+        console.log('📋 Loading session history...');
+        const sessions = await getUserSessions(currentUserId);
+
+        const container = document.getElementById('sessionHistoryList');
+        const summaryContainer = document.getElementById('sessionSummary');
+
+        if (!sessions || sessions.length === 0) {
+            container.innerHTML = `
+                <div class="no-sessions">
+                    <span class="emoji">🧘</span>
+                    No sessions yet.<br>
+                    Start your first focus session!
+                </div>
+            `;
+            document.getElementById('totalSessionsDisplay').textContent = '0';
+            document.getElementById('totalMinutesDisplay').textContent = '0';
+            return;
+        }
+
+        // Calculate totals
+        let totalMinutes = 0;
+        let completedCount = 0;
+
+        // Build table rows
+        let tableHTML = `
+            <table class="session-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Date</th>
+                        <th>Duration</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        sessions.forEach((session, index) => {
+            const date = formatDate(session.sessionDate);
+            const duration = session.durationMinutes + ' min';
+            const type = session.sessionType || 'POMODORO';
+            const isCompleted = session.isCompleted;
+            const statusClass = isCompleted ? 'completed' : 'pending';
+            const statusText = isCompleted ? '✅ Complete' : '⏳ Pending';
+
+            if (isCompleted) {
+                completedCount++;
+                totalMinutes += session.durationMinutes || 0;
+            }
+
+            tableHTML += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${date}</td>
+                    <td>${duration}</td>
+                    <td><span class="session-type type-${type}">${type}</span></td>
+                    <td class="${statusClass}">${statusText}</td>
+                </tr>
+            `;
+        });
+
+        tableHTML += `
+                </tbody>
+            </table>
+        `;
+
+        container.innerHTML = tableHTML;
+
+        // Update summary
+        document.getElementById('totalSessionsDisplay').textContent = sessions.length;
+        document.getElementById('totalMinutesDisplay').textContent = totalMinutes;
+
+        console.log('📋 Session history loaded:', sessions.length, 'sessions');
+
+    } catch (error) {
+        console.error('❌ Error loading session history:', error);
+        const container = document.getElementById('sessionHistoryList');
+        container.innerHTML = `
+            <div class="no-sessions" style="color: #e74c3c;">
+                <span class="emoji">⚠️</span>
+                Could not load session history.<br>
+                Please refresh the page.
+            </div>
+        `;
     }
 }
 
