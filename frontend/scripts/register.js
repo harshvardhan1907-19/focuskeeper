@@ -1,9 +1,3 @@
-// ========================================
-// REGISTER WITH JWT AUTHENTICATION
-// ========================================
-
-// const API_BASE_URL = 'http://localhost:8080/api';
-
 document.getElementById('registerForm').addEventListener('submit', async function (e) {
     e.preventDefault();
 

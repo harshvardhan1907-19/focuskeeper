@@ -1,9 +1,3 @@
-// ========================================
-// API.JS - API calls with JWT authentication
-// ========================================
-
-// const API_BASE_URL = 'http://localhost:8080/api';
-
 // Get JWT token
 function getToken() {
     return localStorage.getItem('token');
@@ -18,8 +12,8 @@ function getUserId() {
 function isLoggedIn() {
     const token = getToken();
     const userId = getUserId();
-    return token && token !== 'undefined' && token !== 'null' && 
-           userId && userId !== 'undefined' && userId !== 'null';
+    return token && token !== 'undefined' && token !== 'null' &&
+        userId && userId !== 'undefined' && userId !== 'null';
 }
 
 // Generic API call with JWT

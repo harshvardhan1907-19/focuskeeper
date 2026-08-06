@@ -2,7 +2,6 @@
 // APP.JS - Shared functions
 // ========================================
 
-// const API_BASE_URL = 'https://egwdm-2409-4080-9104-e7e6-15e5-9dfd-5da9-c93b.free.pinggy.net/api';
 const API_BASE_URL = 'https://focuskeeper-n98l.onrender.com/api';
 
 // Check if user is logged in
