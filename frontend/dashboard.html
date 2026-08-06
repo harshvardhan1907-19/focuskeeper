@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusKeeper - Dashboard</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <link rel="stylesheet" href="./style/style.css">
+    <link rel="stylesheet" href="./style/dashboard.css">
+</head>
+
+<body>
+    <div id="app">
+        <header>
+            <h1>🎯 FocusKeeper</h1>
+            <nav>
+                <a href="/dashboard.html">Dashboard</a>
+                <a href="#" id="logoutLink">Logout</a>
+            </nav>
+        </header>
+
+        <main>
+            <div class="dashboard-container">
+                <h2>Welcome, <span id="userFullName">User</span>!</h2>
+
+                <div class="dashboard-grid">
+                    <!-- Timer Card -->
+                    <div class="dashboard-card">
+                        <h3>⏱️ Focus Timer</h3>
+                        <div class="timer-display">
+                            <span id="timerDisplay">25:00</span>
+                        </div>
+                        <div class="duration-controls">
+                            <label for="durationInput">Set Duration (minutes):</label>
+                            <div class="duration-input-group">
+                                <input type="number" id="durationInput" min="1" max="120" value="25">
+                                <button id="setDurationBtn" class="btn btn-primary">Set</button>
+                            </div>
+                            <div class="preset-buttons">
+                                <button class="btn-preset" data-minutes="5">5 min</button>
+                                <button class="btn-preset" data-minutes="15">15 min</button>
+                                <button class="btn-preset active" data-minutes="25">25 min</button>
+                                <button class="btn-preset" data-minutes="30">30 min</button>
+                                <button class="btn-preset" data-minutes="45">45 min</button>
+                                <button class="btn-preset" data-minutes="60">60 min</button>
+                            </div>
+                        </div>
+                        <div class="timer-controls">
+                            <button id="startTimer" class="btn btn-success">Start</button>
+                            <button id="pauseTimer" class="btn btn-warning">Pause</button>
+                            <button id="resetTimer" class="btn btn-danger">Reset</button>
+                        </div>
+                        <div id="sessionStatus"
+                            style="margin-top: 10px; font-size: 14px; color: #666; text-align: center;">
+                            Ready to focus!
+                        </div>
+                    </div>
+
+                    <!-- Stats Card -->
+                    <div class="dashboard-card">
+                        <h3>📊 Today's Stats</h3>
+                        <div class="stats">
+                            <p>Focus Sessions: <span id="sessionCount">0</span></p>
+                            <p>Total Minutes: <span id="totalMinutes">0</span></p>
+                        </div>
+                    </div>
+
+                    <!-- Profile Card -->
+                    <div class="dashboard-card">
+                        <h3>👤 My Profile</h3>
+                        <div id="profileInfo">
+                            <p><strong>Username:</strong> <span id="profileUsername"></span></p>
+                            <p><strong>Email:</strong> <span id="profileEmail"></span></p>
+                            <p><strong>Full Name:</strong> <span id="profileFullName"></span></p>
+                            <p><strong>Joined:</strong> <span id="profileJoined"></span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 FocusKeeper</p>
+        </footer>
+    </div>
+
+    <!-- app.js for shared functions, api.js for API calls, dashboard.js for dashboard logic -->
+    <script src="./scripts/app.js"></script>
+    <script src="./scripts/api.js"></script>
+    <script src="./scripts/dashboard.js"></script>
+</body>
+
+</html>

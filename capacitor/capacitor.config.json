@@ -1,0 +1,14 @@
+{
+  "appId": "focuskeeper.app",
+  "appName": "FocusKeeper",
+  "webDir": "../frontend",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true,
+    "webContentsDebuggingEnabled": true
+  }
+}
