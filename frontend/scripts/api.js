@@ -22,6 +22,10 @@ function isLoggedIn() {
 
 // Generic API call with JWT
 async function fetchAPI(endpoint, options = {}) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => {
+        controller.abort();
+    }, 30000);
     const token = getToken();
 
     const headers = {
@@ -40,8 +44,9 @@ async function fetchAPI(endpoint, options = {}) {
 
         const response = await fetch(url, {
             ...options,
-            headers
+            signal: controller.signal
         });
+        clearTimeout(timeout);
 
         console.log('📡 Response status:', response.status);
 
@@ -89,7 +94,7 @@ async function fetchAPI(endpoint, options = {}) {
         }
 
     } catch (error) {
-        console.error('❌ API Error:', error);
+        clearTimeout(timeout);
         throw error;
     }
 }
