@@ -1,3 +1,9 @@
+// ========================================
+// REGISTER WITH JWT AUTHENTICATION
+// ========================================
+
+// const API_BASE_URL = 'http://localhost:8080/api';
+
 document.getElementById('registerForm').addEventListener('submit', async function (e) {
     e.preventDefault();
 
@@ -23,8 +29,7 @@ document.getElementById('registerForm').addEventListener('submit', async functio
         const response = await fetch(`${API_BASE_URL}/auth/register`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'ngrok-skip-browser-warning': 'true'
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({ username, email, password, fullName })
         });

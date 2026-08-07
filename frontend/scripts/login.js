@@ -1,3 +1,8 @@
+// ========================================
+// LOGIN.JS - Login functionality with JWT
+// ========================================
+
+// const API_BASE_URL = 'http://localhost:8080/api';
 
 document.getElementById("loginForm").addEventListener("submit", async function (e) {
     e.preventDefault()
@@ -25,7 +30,6 @@ document.getElementById("loginForm").addEventListener("submit", async function (
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "ngrok-skip-browser-warning": "true"
             },
             body: JSON.stringify({ username, password })
         });

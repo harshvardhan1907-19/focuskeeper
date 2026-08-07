@@ -21,6 +21,7 @@ public class FocusSession {
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private User user;
 
     @Column(name = "session_date", nullable = false)
