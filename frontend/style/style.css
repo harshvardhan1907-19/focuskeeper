@@ -81,8 +81,7 @@ body {
 /* Header & Navigation - Glassmorphism */
 header {
     background: var(--bg-glass);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    /* Removed backdrop-filter to prevent creating a containing block for fixed sidebar */
     border: 1px solid var(--border-glass);
     color: var(--text-primary);
     padding: 1rem 1.5rem;
@@ -94,6 +93,19 @@ header {
     flex-wrap: wrap;
     box-shadow: var(--shadow-sm);
     transition: all 0.3s ease;
+    position: relative;
+    z-index: 1000;
+}
+
+header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: inherit;
+    z-index: -1;
+    pointer-events: none;
 }
 
 header h1 {
