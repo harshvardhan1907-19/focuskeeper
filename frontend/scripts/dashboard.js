@@ -261,8 +261,9 @@ async function startTimer() {
             sessionStarted = true;
             console.log('✅ Session created with ID:', currentSessionId);
         } catch (error) {
+            alert('❌ Error: ' + error.message);
             console.error('❌ Failed to start session:', error);
-            alert('Failed to start session. Please try again.');
+            // alert('Failed to start session. Please try again.');
             return;
         }
     }

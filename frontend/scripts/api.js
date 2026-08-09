@@ -22,11 +22,12 @@ function isLoggedIn() {
 
 // Generic API call with JWT
 async function fetchAPI(endpoint, options = {}) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => {
-        controller.abort();
-    }, 30000);
     const token = getToken();
+    console.log('token', token);
+    // const controller = new AbortController();
+    // const timeout = setTimeout(() => {
+    //     controller.abort();
+    // }, 30000);
 
     const headers = {
         'Content-Type': 'application/json',
@@ -44,15 +45,16 @@ async function fetchAPI(endpoint, options = {}) {
 
         const response = await fetch(url, {
             ...options,
-            signal: controller.signal
+            // signal: controller.signal
+            headers
         });
-        clearTimeout(timeout);
+        // clearTimeout(timeout);
 
         console.log('📡 Response status:', response.status);
 
         // If unauthorized, redirect to login
-        if (response.status === 401) {
-            console.log('🔒 Unauthorized - Redirecting to login');
+        if (response.status === 401 || response.status === 403) {
+            console.log('🔒 Unauthorized/Forbidden - Redirecting to login');
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             localStorage.removeItem('userId');
@@ -60,41 +62,34 @@ async function fetchAPI(endpoint, options = {}) {
             throw new Error('Session expired. Please login again.');
         }
 
-        // If forbidden, show error
-        if (response.status === 403) {
-            console.log('🔒 Forbidden - You don\'t have permission. Clearing bad token.');
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            localStorage.removeItem('userId');
-            window.location.href = '/login.html';
-            throw new Error('You don\'t have permission to access this resource.');
-        }
 
         // Check if response has content
-        const contentLength = response.headers.get('content-length');
-        if (contentLength === '0') {
-            console.log('⚠️ Response is empty');
-            return null;
-        }
+        // const contentLength = response.headers.get('content-length');
+        // if (contentLength === '0') {
+        //     console.log('⚠️ Response is empty');
+        //     return null;
+        // }
 
-        // Try to parse JSON
+        let data;
         try {
-            const data = await response.json();
+            data = await response.json();
             console.log('📡 Response data:', data);
-
-            if (!response.ok) {
-                throw new Error(data.error || 'API call failed');
-            }
-            return data;
         } catch (jsonError) {
-            console.error('❌ Failed to parse JSON:', jsonError);
-            const text = await response.text();
-            console.log('📡 Raw response:', text);
-            throw new Error('Invalid response from server');
+            // ✅ If JSON parsing fails, get raw text for debugging
+            const rawText = await response.text();
+            console.error('❌ Invalid JSON response:', rawText);
+            throw new Error('Server returned invalid response');
         }
+
+        if (!response.ok) {
+            throw new Error(data.error || 'API call failed');
+        }
+        console.log('Response data:', data);
+        return data;
 
     } catch (error) {
-        clearTimeout(timeout);
+        // clearTimeout(timeout);
+        console.error('❌ Error in fetchAPI:', error);
         throw error;
     }
 }
