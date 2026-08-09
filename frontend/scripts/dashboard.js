@@ -345,25 +345,24 @@ let completionChart = null;
 async function loadAnalytics() {
     try {
         console.log('📊 Loading analytics...');
+        console.log('📊 Chart.js available?', typeof Chart !== 'undefined');
+
         const stats = await getUserStats(currentUserId);
         const weekly = await getWeeklyStats(currentUserId);
 
         if (stats) {
             document.getElementById('totalSessionsAnalytics').textContent = stats.totalSessions || 0;
             document.getElementById('totalMinutesAnalytics').textContent = stats.totalMinutes || 0;
-
-            // Calculate streak
-            const streak = calculateStreak(weekly);
-            document.getElementById('streakCount').textContent = streak;
-
-            // This week minutes
+            document.getElementById('streakCount').textContent = calculateStreak(weekly);
             document.getElementById('thisWeekMinutes').textContent = weekly.weekMinutes || 0;
         }
 
-        // Draw charts
-        drawWeeklyChart(weekly);
-        drawTypeChart(weekly);
-        drawCompletionChart(weekly);
+        // ✅ Wait for DOM to be ready before drawing
+        setTimeout(() => {
+            drawWeeklyChart(weekly);
+            drawTypeChart(weekly);
+            drawCompletionChart(weekly);
+        }, 200);
 
     } catch (error) {
         console.error('❌ Error loading analytics:', error);
@@ -378,11 +377,25 @@ function calculateStreak(weekly) {
     return completed.length > 0 ? Math.min(completed.length, 7) : 0;
 }
 
-// Draw Weekly Chart
 function drawWeeklyChart(weekly) {
-    const ctx = document.getElementById('weeklyChart').getContext('2d');
+    const canvas = document.getElementById('weeklyChart');
+    if (!canvas) {
+        console.warn('⚠️ weeklyChart canvas not found');
+        return;
+    }
 
-    // Get last 7 days
+    const ctx = canvas.getContext('2d');
+    if (typeof Chart === 'undefined') {
+        console.warn('⚠️ Chart.js not loaded');
+        canvas.parentElement.innerHTML = '<p style="text-align:center;color:#999;">Chart library not loaded</p>';
+        return;
+    }
+
+    // Destroy existing chart
+    if (weeklyChart) {
+        weeklyChart.destroy();
+    }
+
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const minutes = [0, 0, 0, 0, 0, 0, 0];
 
@@ -395,90 +408,69 @@ function drawWeeklyChart(weekly) {
         }
     });
 
-    if (weeklyChart) {
-        weeklyChart.destroy();
-    }
-
-    weeklyChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: days,
-            datasets: [{
-                label: 'Focus Minutes',
-                data: minutes,
-                backgroundColor: ['#4CAF50', '#8BC34A', '#CDDC39', '#4CAF50', '#8BC34A', '#CDDC39', '#4CAF50'],
-                borderRadius: 5,
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
+    try {
+        weeklyChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: days,
+                datasets: [{
+                    label: 'Focus Minutes',
+                    data: minutes,
+                    backgroundColor: ['#4CAF50', '#8BC34A', '#CDDC39', '#4CAF50', '#8BC34A', '#CDDC39', '#4CAF50'],
+                    borderRadius: 5,
+                }]
             },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        display: true,
-                        color: 'rgba(0,0,0,0.05)'
-                    }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                    x: { grid: { display: false } }
                 }
             }
-        }
-    });
+        });
+        console.log('✅ Weekly chart drawn');
+    } catch (e) {
+        console.error('❌ Failed to draw weekly chart:', e);
+    }
 }
 
-// Draw Session Type Chart
 function drawTypeChart(weekly) {
-    const ctx = document.getElementById('typeChart').getContext('2d');
+    const canvas = document.getElementById('typeChart');
+    if (!canvas) return;
 
-    const sessions = weekly.weekSessions || [];
-    const types = {
-        'POMODORO': 0,
-        'SHORT_BREAK': 0,
-        'LONG_BREAK': 0
-    };
-
-    sessions.forEach(session => {
-        const type = session.sessionType || 'POMODORO';
-        if (types[type] !== undefined) {
-            types[type]++;
-        }
-    });
-
-    const typeData = Object.keys(types).filter(key => types[key] > 0);
-    const typeValues = typeData.map(key => types[key]);
-    const typeColors = {
-        'POMODORO': '#4CAF50',
-        'SHORT_BREAK': '#2196F3',
-        'LONG_BREAK': '#9C27B0'
-    };
-
-    if (typeChart) {
-        typeChart.destroy();
+    const ctx = canvas.getContext('2d');
+    if (typeof Chart === 'undefined') {
+        canvas.parentElement.innerHTML = '<p style="text-align:center;color:#999;">Chart library not loaded</p>';
+        return;
     }
 
-    if (typeData.length === 0) {
-        document.getElementById('typeChart').parentElement.innerHTML =
-            '<div style="text-align:center;color:#999;padding:20px;">No sessions yet</div>';
+    if (typeChart) typeChart.destroy();
+
+    const sessions = weekly.weekSessions || [];
+    const types = { 'POMODORO': 0, 'SHORT_BREAK': 0, 'LONG_BREAK': 0 };
+    sessions.forEach(s => {
+        const t = s.sessionType || 'POMODORO';
+        if (types[t] !== undefined) types[t]++;
+    });
+
+    const labels = Object.keys(types).filter(k => types[k] > 0);
+    const values = labels.map(k => types[k]);
+    const colors = { 'POMODORO': '#4CAF50', 'SHORT_BREAK': '#2196F3', 'LONG_BREAK': '#9C27B0' };
+
+    if (!labels.length) {
+        canvas.parentElement.innerHTML = '<div style="text-align:center;color:#999;padding:10px;">No sessions yet</div>';
         return;
     }
 
     typeChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: typeData,
+            labels: labels,
             datasets: [{
-                data: typeValues,
-                backgroundColor: typeData.map(key => typeColors[key] || '#999'),
+                data: values,
+                backgroundColor: labels.map(k => colors[k] || '#999'),
                 borderWidth: 2,
                 borderColor: '#fff'
             }]
@@ -487,36 +479,30 @@ function drawTypeChart(weekly) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        boxWidth: 12,
-                        padding: 10,
-                        font: {
-                            size: 11
-                        }
-                    }
-                }
+                legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } }
             }
         }
     });
 }
 
-// Draw Completion Rate Chart
 function drawCompletionChart(weekly) {
-    const ctx = document.getElementById('completionChart').getContext('2d');
+    const canvas = document.getElementById('completionChart');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (typeof Chart === 'undefined') {
+        canvas.parentElement.innerHTML = '<p style="text-align:center;color:#999;">Chart library not loaded</p>';
+        return;
+    }
+
+    if (completionChart) completionChart.destroy();
 
     const sessions = weekly.weekSessions || [];
     const completed = sessions.filter(s => s.isCompleted).length;
     const pending = sessions.length - completed;
 
-    if (completionChart) {
-        completionChart.destroy();
-    }
-
-    if (sessions.length === 0) {
-        document.getElementById('completionChart').parentElement.innerHTML =
-            '<div style="text-align:center;color:#999;padding:20px;">No sessions yet</div>';
+    if (!sessions.length) {
+        canvas.parentElement.innerHTML = '<div style="text-align:center;color:#999;padding:10px;">No sessions yet</div>';
         return;
     }
 
@@ -535,16 +521,7 @@ function drawCompletionChart(weekly) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        boxWidth: 12,
-                        padding: 10,
-                        font: {
-                            size: 11
-                        }
-                    }
-                }
+                legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } }
             }
         }
     });
