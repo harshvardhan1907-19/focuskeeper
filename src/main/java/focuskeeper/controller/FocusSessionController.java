@@ -129,4 +129,14 @@ public class FocusSessionController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    @GetMapping("weekly/{userId}")
+    public ResponseEntity<?> getWeeklyStats(@PathVariable Long userId) {
+        try {
+            Map<String, Object> stats = sessionService.getWeeklyStats(userId);
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }
