@@ -127,10 +127,15 @@ async function getUserProfile(userId) {
     return fetchAPI(`/users/${userId}`);
 }
 
-
 async function getUserSessions(userId) {
     console.log('📋 Fetching sessions for user:', userId);
     return fetchAPI(`/sessions/user/${userId}`);
+}
+
+// ✅ CORRECTED: Weekly Stats
+async function getWeeklyStats(userId) {
+    console.log('📊 Fetching weekly stats for user:', userId);
+    return fetchAPI(`/sessions/weekly/${userId}`);
 }
 
 console.log('✅ api.js loaded');

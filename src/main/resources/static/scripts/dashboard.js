@@ -74,6 +74,7 @@ async function loadDashboard() {
     // ✅ AJAX calls - load data ONCE on page load
     await loadStats();
     await loadSessionHistory();
+    await loadAnalytics();  // ✅ ADD THIS LINE
 
     // Update session status
     const sessionStatus = document.getElementById('sessionStatus');
@@ -156,13 +157,17 @@ async function loadSessionHistory() {
                 totalMinutes += session.durationMinutes || 0;
             }
 
+            // In loadSessionHistory(), update the table HTML:
+
             tableHTML += `
                 <tr>
-                    <td>${index + 1}</td>
-                    <td>${date}</td>
-                    <td>${duration}</td>
+                    <td class="row-number">${index + 1}</td>
+                    <td class="date-cell">${date}</td>
+                    <td class="duration-cell">${duration}</td>
                     <td><span class="session-type type-${type}">${type}</span></td>
-                    <td class="${statusClass}">${statusText}</td>
+                    <td><span class="status-badge status-${isCompleted ? 'completed' : 'pending'}">
+                        ${isCompleted ? '✅ Complete' : '⏳ Pending'}
+                    </span></td>
                 </tr>
             `;
         });
@@ -331,6 +336,108 @@ function resetTimer() {
 
     const sessionStatus = document.getElementById('sessionStatus');
     if (sessionStatus) sessionStatus.textContent = '🔄 Reset - Ready to focus!';
+}
+
+
+// ========================================
+// ANALYTICS DASHBOARD
+// ========================================
+
+let weeklyChart = null;
+let typeChart = null;
+let completionChart = null;
+
+async function loadAnalytics() {
+    try {
+        const stats = await getUserStats(currentUserId);
+        const weekly = await getWeeklyStats(currentUserId);
+
+        document.getElementById('totalSessionsAnalytics').textContent = stats.totalSessions || 0;
+        document.getElementById('totalMinutesAnalytics').textContent = stats.totalMinutes || 0;
+        document.getElementById('streakCount').textContent = weekly.weekSessions?.filter(s => s.isCompleted).length || 0;
+        document.getElementById('thisWeekMinutes').textContent = weekly.weekMinutes || 0;
+
+        drawWeeklyChart(weekly);
+        drawTypeChart(weekly);
+        drawCompletionChart(weekly);
+    } catch (e) {
+        // console.error('Analytics error:', e); 
+    }
+}
+
+function drawWeeklyChart(weekly) {
+    const canvas = document.getElementById('weeklyChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+    if (weeklyChart) weeklyChart.destroy();
+
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const minutes = [0, 0, 0, 0, 0, 0, 0];
+    (weekly.weekSessions || []).forEach(s => {
+        if (s.isCompleted) {
+            const d = new Date(s.sessionDate);
+            const i = d.getDay() === 0 ? 6 : d.getDay() - 1;
+            minutes[i] += s.durationMinutes || 0;
+        }
+    });
+
+    weeklyChart = new Chart(canvas, {
+        type: 'bar',
+        data: { labels: days, datasets: [{ label: 'Minutes', data: minutes, backgroundColor: '#4CAF50' }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+}
+
+function drawTypeChart(weekly) {
+    const canvas = document.getElementById('typeChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+    if (typeChart) typeChart.destroy();
+
+    const types = { 'POMODORO': 0, 'SHORT_BREAK': 0, 'LONG_BREAK': 0 };
+    (weekly.weekSessions || []).forEach(s => {
+        const t = s.sessionType || 'POMODORO';
+        if (types[t] !== undefined) types[t]++;
+    });
+
+    const labels = Object.keys(types).filter(k => types[k] > 0);
+    if (!labels.length) { canvas.parentElement.innerHTML = '<p style="text-align:center;color:#999;">No data</p>'; return; }
+
+    typeChart = new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{ data: labels.map(k => types[k]), backgroundColor: ['#4CAF50', '#2196F3', '#9C27B0'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+}
+
+function drawCompletionChart(weekly) {
+    const canvas = document.getElementById('completionChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+    if (completionChart) completionChart.destroy();
+
+    const sessions = weekly.weekSessions || [];
+    const completed = sessions.filter(s => s.isCompleted).length;
+    const pending = sessions.length - completed;
+
+    if (!sessions.length) { canvas.parentElement.innerHTML = '<p style="text-align:center;color:#999;">No data</p>'; return; }
+
+    completionChart = new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+            labels: ['✅ Completed', '⏳ Pending'],
+            datasets: [{ data: [completed, pending], backgroundColor: ['#4CAF50', '#FFC107'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+}
+
+// Calculate current streak
+function calculateStreak(weekly) {
+    // Simple streak calculation based on completed sessions
+    const sessions = weekly.weekSessions || [];
+    const completed = sessions.filter(s => s.isCompleted);
+    return completed.length > 0 ? Math.min(completed.length, 7) : 0;
 }
 
 // ========================================

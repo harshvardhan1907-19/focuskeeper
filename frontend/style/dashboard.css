@@ -774,6 +774,7 @@
 }
 
 .chart-container h4 {
+    margin-left: 30px;
     font-size: 14px;
     color: var(--text-secondary);
     margin-bottom: 10px;
