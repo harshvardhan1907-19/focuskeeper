@@ -407,6 +407,12 @@ function drawWeeklyChart(weekly) {
                 }
             }
         });
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                weeklyChart.resize();
+            });
+        });
         console.log('✅ Weekly chart drawn!');
     } catch (e) {
         console.error('❌ Failed to draw weekly chart:', e);
@@ -468,6 +474,11 @@ function drawTypeChart(weekly) {
                 }
             }
         });
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                typeChart.resize();
+            });
+        });
         console.log('✅ Type chart drawn!');
     } catch (e) {
         console.error('❌ Failed to draw type chart:', e);
@@ -522,6 +533,12 @@ function drawCompletionChart(weekly) {
                     legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } }
                 }
             }
+        });
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                completionChart.resize();
+            });
         });
         console.log('✅ Completion chart drawn!');
     } catch (e) {
@@ -603,4 +620,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     setTimerDuration(25);
     console.log('✅ Dashboard ready!');
+});
+
+window.addEventListener('resize', () => {
+    weeklyChart?.resize();
+    typeChart?.resize();
+    completionChart?.resize();
+    // The fix added a requestAnimationFrame × 2 + .resize() call right after each new Chart(...). This forces Chart.js to re-measure the container and resize its internal drawing buffer after the browser has definitely finished layout — by which point the container has its real size (236×118, etc.), so the chart actually draws visible content instead of an empty default buffer.
 });
