@@ -41,8 +41,10 @@ let currentDuration = 25;
 let timerInterval = null;
 let timerSeconds = 1500;
 let isTimerRunning = false;
+let weeklyChart = null;
+let typeChart = null;
+let completionChart = null;
 
-// ✅ Helper function to safely update element text
 function safeSetTextContent(elementId, value) {
     const element = document.getElementById(elementId);
     if (element) {
@@ -52,7 +54,6 @@ function safeSetTextContent(elementId, value) {
     }
 }
 
-// ✅ LOAD DATA ONCE when dashboard loads
 async function loadDashboard() {
     const user = getLoggedInUser();
     if (!user || !isLoggedIn()) {
@@ -64,19 +65,16 @@ async function loadDashboard() {
     currentUserId = getUserId();
     console.log('👤 Loading dashboard for user:', currentUserId, user.username);
 
-    // Update user info with safe checks
     safeSetTextContent('userFullName', user.fullName || user.username);
     safeSetTextContent('profileUsername', user.username);
     safeSetTextContent('profileEmail', user.email || 'Not set');
     safeSetTextContent('profileFullName', user.fullName || 'Not set');
     safeSetTextContent('profileJoined', formatDate(user.createdAt));
 
-    // ✅ AJAX calls - load data ONCE on page load
     await loadStats();
     await loadSessionHistory();
-    await loadAnalytics();  // ✅ ADD THIS LINE
+    await loadAnalytics();
 
-    // Update session status
     const sessionStatus = document.getElementById('sessionStatus');
     if (sessionStatus) sessionStatus.textContent = 'Ready to focus!';
 }
@@ -87,22 +85,18 @@ async function loadStats() {
         const stats = await getUserStats(currentUserId);
 
         if (stats) {
-            // ✅ Update summary badges (these exist)
             safeSetTextContent('totalSessionsSummary', stats.totalSessions || 0);
             safeSetTextContent('totalMinutesSummary', stats.totalMinutes || 0);
             safeSetTextContent('todaySessionsSummary', stats.todaySessionCount || 0);
             safeSetTextContent('todayMinutesSummary', stats.todayMinutes || 0);
-
-            // ✅ Also update analytics if they exist
-            safeSetTextContent('totalSessionsAnalytics', stats.totalSessions || 0);
-            safeSetTextContent('totalMinutesAnalytics', stats.totalMinutes || 0);
+            safeSetTextContent('sessionCount', stats.totalSessions || 0);
+            safeSetTextContent('totalMinutes', stats.totalMinutes || 0);
         }
     } catch (error) {
         console.error('❌ Error loading stats:', error);
     }
 }
 
-// ✅ Load session history via AJAX
 async function loadSessionHistory() {
     try {
         console.log('📋 Loading session history...');
@@ -147,24 +141,20 @@ async function loadSessionHistory() {
             const duration = session.durationMinutes + ' min';
             const type = session.sessionType || 'POMODORO';
             const isCompleted = session.isCompleted;
-            const statusClass = isCompleted ? 'completed' : 'pending';
+            const statusClass = isCompleted ? 'status-completed' : 'status-pending';
             const statusText = isCompleted ? '✅ Complete' : '⏳ Pending';
 
             if (isCompleted) {
                 totalMinutes += session.durationMinutes || 0;
             }
 
-            // In loadSessionHistory(), update the table HTML:
-
             tableHTML += `
                 <tr>
-                    <td class="row-number">${index + 1}</td>
-                    <td class="date-cell">${date}</td>
-                    <td class="duration-cell">${duration}</td>
+                    <td>${index + 1}</td>
+                    <td>${date}</td>
+                    <td>${duration}</td>
                     <td><span class="session-type type-${type}">${type}</span></td>
-                    <td><span class="status-badge status-${isCompleted ? 'completed' : 'pending'}">
-                        ${isCompleted ? '✅ Complete' : '⏳ Pending'}
-                    </span></td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                 </tr>
             `;
         });
@@ -255,7 +245,6 @@ async function startTimer() {
         updateTimerDisplay();
     }
 
-    // Create session in database
     if (!sessionStarted) {
         try {
             const result = await startSession(currentUserId, currentDuration, 'POMODORO');
@@ -283,17 +272,15 @@ async function startTimer() {
 
             console.log('🎯 Timer completed!');
 
-            // ✅ COMPLETE SESSION IN DATABASE
             if (currentSessionId) {
                 completeSession(currentSessionId)
                     .then(async () => {
                         console.log('✅ Session saved!');
                         sessionStarted = false;
                         currentSessionId = null;
-
-                        // ✅ REFRESH DATA VIA AJAX (ONLY ON COMPLETION)
                         await loadStats();
                         await loadSessionHistory();
+                        await loadAnalytics();
 
                         const sessionStatus = document.getElementById('sessionStatus');
                         if (sessionStatus) sessionStatus.textContent = '🎉 Session complete! Great job!';
@@ -335,14 +322,9 @@ function resetTimer() {
     if (sessionStatus) sessionStatus.textContent = '🔄 Reset - Ready to focus!';
 }
 
-
 // ========================================
-// ANALYTICS DASHBOARD
+// ANALYTICS FUNCTIONS (FIXED)
 // ========================================
-
-let weeklyChart = null;
-let typeChart = null;
-let completionChart = null;
 
 async function loadAnalytics() {
     try {
@@ -350,21 +332,19 @@ async function loadAnalytics() {
         const stats = await getUserStats(currentUserId);
         const weekly = await getWeeklyStats(currentUserId);
 
-        console.log('📊 Stats data:', stats);
+        console.log('📊 Stats:', stats);
         console.log('📊 Weekly data:', weekly);
 
-        // Update stats
         safeSetTextContent('totalSessionsAnalytics', stats.totalSessions || 0);
         safeSetTextContent('totalMinutesAnalytics', stats.totalMinutes || 0);
         safeSetTextContent('streakCount', weekly.weekSessions?.filter(s => s.isCompleted).length || 0);
         safeSetTextContent('thisWeekMinutes', weekly.weekMinutes || 0);
 
-        // Draw charts
         drawWeeklyChart(weekly);
         drawTypeChart(weekly);
         drawCompletionChart(weekly);
 
-        console.log('✅ Charts drawn!');
+        console.log('✅ Analytics loaded!');
     } catch (e) {
         console.error('❌ Analytics error:', e);
     }
@@ -374,7 +354,7 @@ function drawWeeklyChart(weekly) {
     console.log('📊 Drawing weekly chart...');
     const canvas = document.getElementById('weeklyChart');
     if (!canvas) {
-        console.error('❌ Canvas not found!');
+        console.error('❌ weeklyChart canvas not found!');
         return;
     }
 
@@ -391,20 +371,15 @@ function drawWeeklyChart(weekly) {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const minutes = [0, 0, 0, 0, 0, 0, 0];
 
-    // Process weekly data
-    const sessions = weekly.weekSessions || [];
-    console.log('📊 Sessions for chart:', sessions.length);
-
-    sessions.forEach(s => {
+    (weekly.weekSessions || []).forEach(s => {
         if (s.isCompleted) {
             const d = new Date(s.sessionDate);
             const dayIndex = d.getDay() === 0 ? 6 : d.getDay() - 1;
             minutes[dayIndex] += s.durationMinutes || 0;
-            console.log(`📊 Added ${s.durationMinutes} min to day ${dayIndex}`);
         }
     });
 
-    console.log('📊 Final minutes array:', minutes);
+    console.log('📊 Weekly chart data:', { days, minutes });
 
     try {
         weeklyChart = new Chart(canvas, {
@@ -434,14 +409,27 @@ function drawWeeklyChart(weekly) {
         });
         console.log('✅ Weekly chart drawn!');
     } catch (e) {
-        console.error('❌ Failed to draw chart:', e);
+        console.error('❌ Failed to draw weekly chart:', e);
     }
 }
 
 function drawTypeChart(weekly) {
+    console.log('📊 Drawing type chart...');
     const canvas = document.getElementById('typeChart');
-    if (!canvas || typeof Chart === 'undefined') return;
-    if (typeChart) typeChart.destroy();
+    if (!canvas) {
+        console.error('❌ typeChart canvas not found!');
+        return;
+    }
+
+    if (typeof Chart === 'undefined') {
+        console.error('❌ Chart.js not loaded!');
+        return;
+    }
+
+    if (typeChart) {
+        typeChart.destroy();
+        typeChart = null;
+    }
 
     const types = { 'POMODORO': 0, 'SHORT_BREAK': 0, 'LONG_BREAK': 0 };
     (weekly.weekSessions || []).forEach(s => {
@@ -450,45 +438,95 @@ function drawTypeChart(weekly) {
     });
 
     const labels = Object.keys(types).filter(k => types[k] > 0);
-    if (!labels.length) { canvas.parentElement.innerHTML = '<p style="text-align:center;color:#999;">No data</p>'; return; }
+    const values = labels.map(k => types[k]);
+    const colors = { 'POMODORO': '#4CAF50', 'SHORT_BREAK': '#2196F3', 'LONG_BREAK': '#9C27B0' };
 
-    typeChart = new Chart(canvas, {
-        type: 'doughnut',
-        data: {
-            labels: labels,
-            datasets: [{ data: labels.map(k => types[k]), backgroundColor: ['#4CAF50', '#2196F3', '#9C27B0'] }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-    });
+    console.log('📊 Type chart data:', { labels, values });
+
+    if (!labels.length) {
+        canvas.parentElement.innerHTML = '<div style="text-align:center;color:#999;padding:20px;">No sessions yet</div>';
+        return;
+    }
+
+    try {
+        typeChart = new Chart(canvas, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: labels.map(k => colors[k] || '#999'),
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } }
+                }
+            }
+        });
+        console.log('✅ Type chart drawn!');
+    } catch (e) {
+        console.error('❌ Failed to draw type chart:', e);
+    }
 }
 
 function drawCompletionChart(weekly) {
+    console.log('📊 Drawing completion chart...');
     const canvas = document.getElementById('completionChart');
-    if (!canvas || typeof Chart === 'undefined') return;
-    if (completionChart) completionChart.destroy();
+    if (!canvas) {
+        console.error('❌ completionChart canvas not found!');
+        return;
+    }
+
+    if (typeof Chart === 'undefined') {
+        console.error('❌ Chart.js not loaded!');
+        return;
+    }
+
+    if (completionChart) {
+        completionChart.destroy();
+        completionChart = null;
+    }
 
     const sessions = weekly.weekSessions || [];
     const completed = sessions.filter(s => s.isCompleted).length;
     const pending = sessions.length - completed;
 
-    if (!sessions.length) { canvas.parentElement.innerHTML = '<p style="text-align:center;color:#999;">No data</p>'; return; }
+    console.log('📊 Completion chart:', { completed, pending });
 
-    completionChart = new Chart(canvas, {
-        type: 'doughnut',
-        data: {
-            labels: ['✅ Completed', '⏳ Pending'],
-            datasets: [{ data: [completed, pending], backgroundColor: ['#4CAF50', '#FFC107'] }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-    });
-}
+    if (!sessions.length) {
+        canvas.parentElement.innerHTML = '<div style="text-align:center;color:#999;padding:20px;">No sessions yet</div>';
+        return;
+    }
 
-// Calculate current streak
-function calculateStreak(weekly) {
-    // Simple streak calculation based on completed sessions
-    const sessions = weekly.weekSessions || [];
-    const completed = sessions.filter(s => s.isCompleted);
-    return completed.length > 0 ? Math.min(completed.length, 7) : 0;
+    try {
+        completionChart = new Chart(canvas, {
+            type: 'doughnut',
+            data: {
+                labels: ['✅ Completed', '⏳ Pending'],
+                datasets: [{
+                    data: [completed, pending],
+                    backgroundColor: ['#4CAF50', '#FFC107'],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } }
+                }
+            }
+        });
+        console.log('✅ Completion chart drawn!');
+    } catch (e) {
+        console.error('❌ Failed to draw completion chart:', e);
+    }
 }
 
 // ========================================
@@ -505,7 +543,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     loadDashboard();
 
-    // Duration controls
     const setDurationBtn = document.getElementById('setDurationBtn');
     if (setDurationBtn) {
         setDurationBtn.addEventListener('click', function () {
@@ -547,7 +584,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Timer controls
     const startBtn = document.getElementById('startTimer');
     if (startBtn) startBtn.addEventListener('click', startTimer);
 
@@ -557,7 +593,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const resetBtn = document.getElementById('resetTimer');
     if (resetBtn) resetBtn.addEventListener('click', resetTimer);
 
-    // Logout
     const logoutLink = document.getElementById('logoutLink');
     if (logoutLink) {
         logoutLink.addEventListener('click', function (e) {
