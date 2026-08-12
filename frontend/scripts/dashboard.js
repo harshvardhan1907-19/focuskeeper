@@ -81,27 +81,24 @@ async function loadDashboard() {
     if (sessionStatus) sessionStatus.textContent = 'Ready to focus!';
 }
 
-// ✅ Load stats via AJAX
 async function loadStats() {
     try {
         console.log('📊 Loading stats...');
         const stats = await getUserStats(currentUserId);
 
         if (stats) {
-            // Update stats card
-            safeSetTextContent('sessionCount', stats.totalSessions || 0);
-            safeSetTextContent('totalMinutes', stats.totalMinutes || 0);
-
-            // Update summary badges (if they exist)
+            // ✅ Update summary badges (these exist)
             safeSetTextContent('totalSessionsSummary', stats.totalSessions || 0);
             safeSetTextContent('totalMinutesSummary', stats.totalMinutes || 0);
             safeSetTextContent('todaySessionsSummary', stats.todaySessionCount || 0);
             safeSetTextContent('todayMinutesSummary', stats.todayMinutes || 0);
+
+            // ✅ Also update analytics if they exist
+            safeSetTextContent('totalSessionsAnalytics', stats.totalSessions || 0);
+            safeSetTextContent('totalMinutesAnalytics', stats.totalMinutes || 0);
         }
     } catch (error) {
         console.error('❌ Error loading stats:', error);
-        safeSetTextContent('sessionCount', 0);
-        safeSetTextContent('totalMinutes', 0);
     }
 }
 
@@ -349,42 +346,96 @@ let completionChart = null;
 
 async function loadAnalytics() {
     try {
+        console.log('📊 Loading analytics...');
         const stats = await getUserStats(currentUserId);
         const weekly = await getWeeklyStats(currentUserId);
 
-        document.getElementById('totalSessionsAnalytics').textContent = stats.totalSessions || 0;
-        document.getElementById('totalMinutesAnalytics').textContent = stats.totalMinutes || 0;
-        document.getElementById('streakCount').textContent = weekly.weekSessions?.filter(s => s.isCompleted).length || 0;
-        document.getElementById('thisWeekMinutes').textContent = weekly.weekMinutes || 0;
+        console.log('📊 Stats data:', stats);
+        console.log('📊 Weekly data:', weekly);
 
+        // Update stats
+        safeSetTextContent('totalSessionsAnalytics', stats.totalSessions || 0);
+        safeSetTextContent('totalMinutesAnalytics', stats.totalMinutes || 0);
+        safeSetTextContent('streakCount', weekly.weekSessions?.filter(s => s.isCompleted).length || 0);
+        safeSetTextContent('thisWeekMinutes', weekly.weekMinutes || 0);
+
+        // Draw charts
         drawWeeklyChart(weekly);
         drawTypeChart(weekly);
         drawCompletionChart(weekly);
+
+        console.log('✅ Charts drawn!');
     } catch (e) {
-        // console.error('Analytics error:', e); 
+        console.error('❌ Analytics error:', e);
     }
 }
 
 function drawWeeklyChart(weekly) {
+    console.log('📊 Drawing weekly chart...');
     const canvas = document.getElementById('weeklyChart');
-    if (!canvas || typeof Chart === 'undefined') return;
-    if (weeklyChart) weeklyChart.destroy();
+    if (!canvas) {
+        console.error('❌ Canvas not found!');
+        return;
+    }
+
+    if (typeof Chart === 'undefined') {
+        console.error('❌ Chart.js not loaded!');
+        return;
+    }
+
+    if (weeklyChart) {
+        weeklyChart.destroy();
+        weeklyChart = null;
+    }
 
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const minutes = [0, 0, 0, 0, 0, 0, 0];
-    (weekly.weekSessions || []).forEach(s => {
+
+    // Process weekly data
+    const sessions = weekly.weekSessions || [];
+    console.log('📊 Sessions for chart:', sessions.length);
+
+    sessions.forEach(s => {
         if (s.isCompleted) {
             const d = new Date(s.sessionDate);
-            const i = d.getDay() === 0 ? 6 : d.getDay() - 1;
-            minutes[i] += s.durationMinutes || 0;
+            const dayIndex = d.getDay() === 0 ? 6 : d.getDay() - 1;
+            minutes[dayIndex] += s.durationMinutes || 0;
+            console.log(`📊 Added ${s.durationMinutes} min to day ${dayIndex}`);
         }
     });
 
-    weeklyChart = new Chart(canvas, {
-        type: 'bar',
-        data: { labels: days, datasets: [{ label: 'Minutes', data: minutes, backgroundColor: '#4CAF50' }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-    });
+    console.log('📊 Final minutes array:', minutes);
+
+    try {
+        weeklyChart = new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels: days,
+                datasets: [{
+                    label: 'Focus Minutes',
+                    data: minutes,
+                    backgroundColor: ['#4CAF50', '#8BC34A', '#CDDC39', '#4CAF50', '#8BC34A', '#CDDC39', '#4CAF50'],
+                    borderRadius: 5,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(0,0,0,0.05)' },
+                        title: { display: true, text: 'Minutes' }
+                    },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+        console.log('✅ Weekly chart drawn!');
+    } catch (e) {
+        console.error('❌ Failed to draw chart:', e);
+    }
 }
 
 function drawTypeChart(weekly) {

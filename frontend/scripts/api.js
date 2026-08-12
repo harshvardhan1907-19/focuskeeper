@@ -94,7 +94,7 @@ async function fetchAPI(endpoint, options = {}) {
     }
 }
 
-async function getWeeklyStates(userId) {
+async function getWeeklyStats(userId) {
     console.log('📊 Fetching weekly stats for user:', userId);
     return fetchAPI(`/session/weekly/${userId}`);
 }
