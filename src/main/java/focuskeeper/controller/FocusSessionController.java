@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.swing.text.html.parser.Entity;
+
 @RestController
 @RequestMapping("/api/sessions")
 @CrossOrigin(origins = "*")
@@ -137,6 +139,29 @@ public class FocusSessionController {
             return ResponseEntity.ok(stats);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // get coins stats
+    @GetMapping("/coins/{userId}")
+    public ResponseEntity<?> getCoinStats(@PathVariable Long userId) {
+        try {
+            Map<String, Object> stats = sessionService.getCoinStats(userId);
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // redeem reward
+    @PostMapping("coins/redeem/{userId}")
+    public ResponseEntity<?> redeemReward(@PathVariable Long userId) {
+        try {
+            Map<String, Object> result = sessionService.redeemReward(userId);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("success", false, "message", e.getMessage()));
         }
     }
 }

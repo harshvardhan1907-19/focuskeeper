@@ -74,6 +74,7 @@ async function loadDashboard() {
     await loadStats();
     await loadSessionHistory();
     await loadAnalytics();
+    await loadCoins();
 
     const sessionStatus = document.getElementById('sessionStatus');
     if (sessionStatus) sessionStatus.textContent = 'Ready to focus!';
@@ -547,6 +548,69 @@ function drawCompletionChart(weekly) {
 }
 
 // ========================================
+// COIN & REWARD FUNCTIONS
+// ========================================
+async function loadCoins() {
+    try {
+        console.log("🪙 Loading coin stats...")
+        const coinData = await getCoinStats(currentUserId);
+
+        console.log('🪙 Coin data:', coinData);
+
+        safeSetTextContent("coinCount", coinData.coins || 0);
+        safeSetTextContent("rewardsRedeemed", coinData.rewardsRedeemed || 0);
+
+        const coinsNeeded = coinData.coinsNeededForReward || 0;
+        safeSetTextContent("nextRewardText", coinsNeeded > 0 ? coinsNeeded : '🎉 Ready!');
+
+        // update progress bar
+        const progress = coinData.coinsNeededForReward || 0;
+        const progressBar = document.getElementById("rewardProgressBar");
+        const progressText = document.getElementById("progressText");
+
+        if (progressBar) {
+            progressBar.style.width = Math.min(progress, 100) + '%';
+        }
+        if (progressText) {
+            progressText.textContent = Math.min(progress, 100) + '%';
+        }
+
+        // enable/disable redeem button
+        const redeemBtn = document.getElementById('redeemRewardBtn');
+        if (redeemBtn) {
+            if (coinData.canRedeem) {
+                redeemBtn.disabled = false;
+                redeemBtn.textContent = '🎁 Redeem ₹30 Reward!';
+                redeemBtn.style.background = '#2E7D32';
+            } else {
+                redeemBtn.disabled = true;
+                redeemBtn.textContent = `🪙 Need ${coinsNeeded} more coins for ₹30`;
+                redeemBtn.style.background = '#999';
+            }
+        }
+
+    } catch (error) {
+        console.error('❌ Error loading coins:', error);
+    }
+}
+
+
+// ========================================
+// REDEEM REWARD
+// ========================================
+async function handleRedeemReward() {
+    try {
+        const result = await redeemReward(currentUserId);
+        alert(result.message);
+        await loadCoins();
+        await loadStats();
+    } catch (error) {
+        console.error('❌ Error redeeming reward:', error);
+        alert('Failed to redeem reward: ' + error.message);
+    }
+}
+
+// ========================================
 // EVENT LISTENERS
 // ========================================
 
@@ -619,6 +683,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     setTimerDuration(25);
+
+    const redeemBtn = document.getElementById("redeemRewardBtn");
+    if (redeemBtn) {
+        redeemBtn.addEventListener('click', handleRedeemReward);
+    }
     console.log('✅ Dashboard ready!');
 });
 

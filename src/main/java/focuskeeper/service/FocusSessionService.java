@@ -39,15 +39,16 @@ public class FocusSessionService {
     /**
      * Complete a focus session
      */
-    @Transactional
-    public FocusSession completeSession(Long sessionId) {
-        FocusSession session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Session not found with id: " + sessionId));
+    // @Transactional
+    // public FocusSession completeSession(Long sessionId) {
+    // FocusSession session = sessionRepository.findById(sessionId)
+    // .orElseThrow(() -> new RuntimeException("Session not found with id: " +
+    // sessionId));
 
-        session.setIsCompleted(true);
-        session.setCompletedAt(LocalDateTime.now());
-        return sessionRepository.save(session);
-    }
+    // session.setIsCompleted(true);
+    // session.setCompletedAt(LocalDateTime.now());
+    // return sessionRepository.save(session);
+    // }
 
     /**
      * Get all sessions for a user
@@ -139,4 +140,75 @@ public class FocusSessionService {
         }
         sessionRepository.deleteById(sessionId);
     }
+
+    // coins management
+    @Transactional
+    public FocusSession completeSession(Long sessionId) {
+        FocusSession session = sessionRepository.findById(sessionId).orElseThrow(
+                () -> new RuntimeException("Session not found with id: " + sessionId));
+
+        session.setIsCompleted(true);
+        session.setCompletedAt(LocalDateTime.now());
+
+        User user = session.getUser();
+        int coinsEared = 1;
+
+        // bonus for longer session
+        if (session.getDurationMinutes() > 20) {
+            coinsEared += 2;
+        }
+
+        // bonus for completing 25-minute Pomodoro
+        if (session.getDurationMinutes() == 25 && "PROMODORO".equalsIgnoreCase(session.getSessionType())) {
+            coinsEared += 1;
+        }
+
+        user.addCoins(coinsEared);
+        userRepository.save(user);
+
+        // Check if user reached reward milestone
+        if (user.canRedeemReward()) {
+            // TODO: handle this in the response later
+        }
+        return sessionRepository.save(session);
+    }
+
+    // get the user coins nd reward stats
+    public Map<String, Object> getCoinStats(Long userId) {
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new RuntimeException("User not found with id: " + userId));
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("coins", user.getCoins() != null ? user.getCoins() : 0);
+        stats.put("totalCoinsEarned", user.getTotalCoinsEarned() != null ? user.getTotalCoinsEarned() : 0);
+        stats.put("rewardsRedeemed", user.getRewardsRedeemed() != null ? user.getRewardsRedeemed() : 0);
+        stats.put("coinsProgress", user.getCoinsProgress());
+        stats.put("coinsPercentage", user.getCoinsPercentage());
+        stats.put("canRedeem", user.canRedeemReward());
+        stats.put("coinsNeededForReward", 50 - (user.getCoins() != null ? user.getCoins() : 0));
+        return stats;
+    }
+
+    // redeem reward
+    @Transactional
+    public Map<String, Object> redeemReward(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        if (!user.canRedeemReward()) {
+            throw new RuntimeException("Not enough coins to redeem reward");
+        }
+
+        user.redeemReward();
+        userRepository.save(user);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("rewardRedeemed", true);
+        response.put("message", "🎉 Congratulations! You've redeemed ₹30 reward!");
+        response.put("remainingCoins", user.getCoins());
+        response.put("totalRewards", user.getRewardsRedeemed());
+        return response;
+
+    }
+
 }
