@@ -1,6 +1,8 @@
 package focuskeeper.service;
 
+import focuskeeper.model.FocusSession;
 import focuskeeper.model.User;
+import focuskeeper.repository.FocusSessionRepository;
 import focuskeeper.repository.UserRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +23,9 @@ import java.util.Optional;
 public class UserService implements UserDetailsService {
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private FocusSessionRepository sessionRepository;
 
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -123,4 +128,39 @@ public class UserService implements UserDetailsService {
                 .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
         userRepository.delete(user);
     }
+
+    // public void migratePastSessionsCoins() {
+    //     List<User> users = userRepository.findAll();
+
+    //     for (User user : users) {
+    //         // Get all complete sessions for this user
+    //         List<FocusSession> completedSessions = sessionRepository.findByUserAndIsCompleted(user, true);
+
+    //         int totalCoins = 0;
+
+    //         for (FocusSession session : completedSessions) {
+
+    //             int coinsEarned = 1; // base coin
+
+    //             // bonus for 20+ session
+    //             if (session.getDurationMinutes() > 20) {
+    //                 coinsEarned += 2;
+    //             }
+
+    //             // Bonus for perfect Pomodoro
+    //             if (session.getDurationMinutes() == 25 && "POMODORO".equals(session.getSessionType())) {
+    //                 coinsEarned += 1;
+    //             }
+
+    //             totalCoins += coinsEarned;
+    //         }
+
+    //         if (totalCoins > 0) {
+    //             user.addCoins(totalCoins);
+    //             userRepository.save(user);
+    //             System.out.println(
+    //                     "✅ User " + user.getUsername() + " awarded " + totalCoins + " coins for past sessions!");
+    //         }
+    //     }
+    // }
 }

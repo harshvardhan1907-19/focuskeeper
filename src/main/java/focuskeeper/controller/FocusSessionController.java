@@ -145,10 +145,13 @@ public class FocusSessionController {
     // get coins stats
     @GetMapping("/coins/{userId}")
     public ResponseEntity<?> getCoinStats(@PathVariable Long userId) {
+        System.out.println("🪙🪙🪙 COIN API CALLED for user: " + userId); // ← ADD THIS
         try {
             Map<String, Object> stats = sessionService.getCoinStats(userId);
+            System.out.println("🪙 Returning coins: " + stats.get("coins")); // ← ADD THIS
             return ResponseEntity.ok(stats);
         } catch (Exception e) {
+            System.err.println("❌ Error in getCoinStats: " + e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }

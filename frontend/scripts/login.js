@@ -7,10 +7,6 @@
 document.getElementById("loginForm").addEventListener("submit", async function (e) {
     e.preventDefault()
     console.log("🔐 Login button clicked");
-    // ✅ Show loading
-    const submitBtn = document.querySelector('button[type="submit"]');
-    submitBtn.textContent = '⏳ Logging in...';
-    submitBtn.disabled = true;
 
     const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value.trim();

@@ -74,6 +74,7 @@ async function loadDashboard() {
     await loadStats();
     await loadSessionHistory();
     await loadAnalytics();
+    await loadCoins();
 
     const sessionStatus = document.getElementById('sessionStatus');
     if (sessionStatus) sessionStatus.textContent = 'Ready to focus!';
@@ -547,6 +548,82 @@ function drawCompletionChart(weekly) {
 }
 
 // ========================================
+// COIN & REWARD FUNCTIONS
+// ========================================
+async function loadCoins() {
+    try {
+        console.log("🪙 Loading coin stats...")
+        const coinData = await getCoinStats(currentUserId);
+
+        console.log('🪙 Coin data:', coinData);
+
+        const coinCount = document.getElementById('coinCount');
+        if (coinCount) {
+            coinCount.textContent = coinData.coins || 0;
+        }
+
+        const rewardsRedeemed = document.getElementById('rewardsRedeemed');
+        if (rewardsRedeemed) {
+            rewardsRedeemed.textContent = coinData.rewardsRedeemed || 0;
+        }
+
+        const nextRewardText = document.getElementById('nextRewardText');
+        if (nextRewardText) {
+            const needed = coinData.coinsNeededForReward || 0;
+            nextRewardText.textContent = needed > 0 ? needed : '🎉 Ready!';
+        }
+
+        // update progress bar
+        const progress = coinData.coinsPercentage || 0;
+        const progressBar = document.getElementById("rewardProgressBar");
+        const progressText = document.getElementById("progressText");
+
+        if (progressBar) {
+            progressBar.style.width = Math.min(progress, 100) + '%';
+        }
+        if (progressText) {
+            progressText.textContent = Math.min(progress, 100) + '%';
+        }
+
+        // enable/disable redeem button
+        const redeemBtn = document.getElementById('redeemRewardBtn');
+        if (redeemBtn) {
+            if (coinData.canRedeem) {
+                redeemBtn.disabled = false;
+                redeemBtn.textContent = '🎁 Redeem ₹30 Reward!';
+                redeemBtn.style.background = '#2E7D32';
+                redeemBtn.style.color = 'white';
+            } else {
+                // ✅ FIX: Use 'needed' instead of 'coinsNeeded'
+                const needed = coinData.coinsNeededForReward || 50;
+                redeemBtn.disabled = true;
+                redeemBtn.textContent = `🪙 Need ${needed} more coins for ₹30`;
+                redeemBtn.style.background = '#999';
+                redeemBtn.style.color = '#666';
+            }
+        }
+        console.log('✅ Coins loaded successfully!');
+    } catch (error) {
+        console.error('❌ Error loading coins:', error);
+    }
+}
+
+// ========================================
+// REDEEM REWARD
+// ========================================
+async function handleRedeemReward() {
+    try {
+        const result = await redeemReward(currentUserId);
+        alert(result.message);
+        await loadCoins();
+        await loadStats();
+    } catch (error) {
+        console.error('❌ Error redeeming reward:', error);
+        alert('Failed to redeem reward: ' + error.message);
+    }
+}
+
+// ========================================
 // EVENT LISTENERS
 // ========================================
 
@@ -619,6 +696,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     setTimerDuration(25);
+
+    const redeemBtn = document.getElementById("redeemRewardBtn");
+    if (redeemBtn) {
+        redeemBtn.addEventListener('click', handleRedeemReward);
+    }
     console.log('✅ Dashboard ready!');
 });
 

@@ -557,14 +557,24 @@ async function loadCoins() {
 
         console.log('🪙 Coin data:', coinData);
 
-        safeSetTextContent("coinCount", coinData.coins || 0);
-        safeSetTextContent("rewardsRedeemed", coinData.rewardsRedeemed || 0);
+        const coinCount = document.getElementById('coinCount');
+        if (coinCount) {
+            coinCount.textContent = coinData.coins || 0;
+        }
 
-        const coinsNeeded = coinData.coinsNeededForReward || 0;
-        safeSetTextContent("nextRewardText", coinsNeeded > 0 ? coinsNeeded : '🎉 Ready!');
+        const rewardsRedeemed = document.getElementById('rewardsRedeemed');
+        if (rewardsRedeemed) {
+            rewardsRedeemed.textContent = coinData.rewardsRedeemed || 0;
+        }
+
+        const nextRewardText = document.getElementById('nextRewardText');
+        if (nextRewardText) {
+            const needed = coinData.coinsNeededForReward || 0;
+            nextRewardText.textContent = needed > 0 ? needed : '🎉 Ready!';
+        }
 
         // update progress bar
-        const progress = coinData.coinsNeededForReward || 0;
+        const progress = coinData.coinsPercentage || 0;
         const progressBar = document.getElementById("rewardProgressBar");
         const progressText = document.getElementById("progressText");
 
@@ -582,18 +592,21 @@ async function loadCoins() {
                 redeemBtn.disabled = false;
                 redeemBtn.textContent = '🎁 Redeem ₹30 Reward!';
                 redeemBtn.style.background = '#2E7D32';
+                redeemBtn.style.color = 'white';
             } else {
+                // ✅ FIX: Use 'needed' instead of 'coinsNeeded'
+                const needed = coinData.coinsNeededForReward || 50;
                 redeemBtn.disabled = true;
-                redeemBtn.textContent = `🪙 Need ${coinsNeeded} more coins for ₹30`;
+                redeemBtn.textContent = `🪙 Need ${needed} more coins for ₹30`;
                 redeemBtn.style.background = '#999';
+                redeemBtn.style.color = '#666';
             }
         }
-
+        console.log('✅ Coins loaded successfully!');
     } catch (error) {
         console.error('❌ Error loading coins:', error);
     }
 }
-
 
 // ========================================
 // REDEEM REWARD

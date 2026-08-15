@@ -138,4 +138,21 @@ async function getUserSessions(userId) {
     return fetchAPI(`/sessions/user/${userId}`);
 }
 
+
+// ========================================
+// COIN & REWARD API CALLS
+// ========================================
+
+async function getCoinStats(userId) {
+    console.log('🪙 Fetching coins and reward stats for user:', userId);
+    return fetchAPI(`/sessions/coins/${userId}`);
+}
+
+async function redeemReward(userId) {
+    console.log('🎁 Redeeming reward for user:', userId);
+    return fetchAPI(`/sessions/coins/redeem/${userId}`, {
+        method: 'POST'
+    });
+}
+
 console.log('✅ api.js loaded');

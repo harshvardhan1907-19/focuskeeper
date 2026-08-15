@@ -14,26 +14,12 @@
 
     <!-- Chart.js -->
     <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script> -->
-    <!-- <script src="./scripts/chart.js"></script> -->
     <script src="./scripts/chart.js"></script>
-    <!-- Eruda Debug Console -->
-    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-    <script>
-        eruda.init();
-        console.log('🔧 Eruda loaded!');
 
-        // Check Chart.js
-        setTimeout(() => {
-            if (typeof Chart !== 'undefined') {
-                console.log('✅ Chart.js loaded!');
-            } else {
-                console.log('❌ Chart.js NOT loaded!');
-            }
-        }, 1000);
-    </script>
-
+    <!-- Google Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="./style/style.css">
     <link rel="stylesheet" href="./style/dashboard.css">
 </head>
@@ -90,13 +76,6 @@
                             <span class="stat-summary-label">Today's Minutes</span>
                         </div>
                     </div>
-                </div>
-
-                <!-- ✅ ADD THIS: Hidden/Visible stats for sessionCount and totalMinutes -->
-                <!-- This is what dashboard.js is looking for -->
-                <div style="display:none;">
-                    <span id="sessionCount">0</span>
-                    <span id="totalMinutes">0</span>
                 </div>
 
                 <div class="dashboard-grid">
@@ -215,6 +194,44 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Coin & Reward Card -->
+                <div class="dashboard-card"
+                    style="grid-column: 1 / -1; background: linear-gradient(135deg, #FFD700, #FFA500); color: #1a2332;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <h3 style="color: #1a2332; margin: 0;">🪙 Coin & Reward</h3>
+                            <div
+                                style="display: flex; align-items: center; gap: 15px; margin-top: 10px; flex-wrap: wrap;">
+                                <span style="font-size: 28px; font-weight: 800;">🪙 <span id="coinCount">0</span></span>
+                                <span style="font-size: 16px;">|</span>
+                                <span style="font-size: 20px; font-weight: 700;">🏆 Rewards: <span
+                                        id="rewardsRedeemed">0</span></span>
+                                <span style="font-size: 16px;">|</span>
+                                <span style="font-size: 20px; font-weight: 700;">💰 <span id="nextRewardText">0</span>
+                                    coins to ₹30</span>
+                            </div>
+                        </div>
+                        <button id="redeemRewardBtn" class="btn btn-success"
+                            style="padding: 12px 30px; font-weight: 700; border-radius: 30px;">
+                            🎁 Redeem ₹30 Reward
+                        </button>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div
+                        style="margin-top: 15px; background: rgba(255,255,255,0.4); border-radius: 30px; height: 12px; overflow: hidden;">
+                        <div id="rewardProgressBar"
+                            style="width: 0%; height: 100%; background: #2E7D32; border-radius: 30px; transition: width 0.5s ease;">
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; margin-top: 4px;">
+                        <span>0 coins</span>
+                        <span id="progressText">0%</span>
+                        <span>50 coins</span>
+                    </div>
+                </div>
         </main>
 
         <footer>
@@ -226,18 +243,6 @@
     <script src="./scripts/app.js"></script>
     <script src="./scripts/api.js"></script>
     <script src="./scripts/dashboard.js"></script>
-    <script>
-        // Force charts to load after everything
-        setTimeout(function () {
-            console.log('🔄 Forcing analytics load...');
-            if (typeof loadAnalytics === 'function') {
-                loadAnalytics();
-                console.log('✅ loadAnalytics called manually!');
-            } else {
-                console.log('❌ loadAnalytics not found!');
-            }
-        }, 3000);
-    </script>
 </body>
 
 </html>

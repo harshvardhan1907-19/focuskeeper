@@ -149,28 +149,40 @@ public class FocusSessionService {
 
         session.setIsCompleted(true);
         session.setCompletedAt(LocalDateTime.now());
+        session = sessionRepository.save(session);
 
         User user = session.getUser();
-        int coinsEared = 1;
 
-        // bonus for longer session
-        if (session.getDurationMinutes() > 20) {
-            coinsEared += 2;
+        // Count total completed sessions AFTER this one is marked complete
+        Long completedCount = sessionRepository.countByUserAndIsCompletedTrue(user);
+        int coinsEarned = 1; // base coin for completing a session
+
+        // Bonus: +2 coins once user has completed 20 or more sessions total
+        if (completedCount >= 20) {
+            coinsEarned += 2;
+            System.out.println("🎁 20+ session bonus applied! +2 coins");
         }
 
-        // bonus for completing 25-minute Pomodoro
-        if (session.getDurationMinutes() == 25 && "PROMODORO".equalsIgnoreCase(session.getSessionType())) {
-            coinsEared += 1;
+        // Bonus: +1 extra coin for a full 25-minute Pomodoro session
+        if (session.getDurationMinutes() == 25 && "POMODORO".equalsIgnoreCase(session.getSessionType())) {
+            coinsEarned += 1;
+            System.out.println("🎁 25-min Pomodoro bonus applied! +1 coin");
         }
 
-        user.addCoins(coinsEared);
+        System.out.println("🪙 Total coins earned this session: " + coinsEarned);
+
+        user.addCoins(coinsEarned);
         userRepository.save(user);
+
+        System.out.println("🪙 User total coins now: " + user.getCoins());
 
         // Check if user reached reward milestone
         if (user.canRedeemReward()) {
+            System.out.println("🏆 User can redeem reward! Coins: " + user.getCoins());
             // TODO: handle this in the response later
         }
-        return sessionRepository.save(session);
+
+        return session;
     }
 
     // get the user coins nd reward stats
@@ -180,6 +192,7 @@ public class FocusSessionService {
 
         Map<String, Object> stats = new HashMap<>();
         stats.put("coins", user.getCoins() != null ? user.getCoins() : 0);
+        System.out.println("User " + user.getUsername() + " has " + stats.get("coins") + " coins.");
         stats.put("totalCoinsEarned", user.getTotalCoinsEarned() != null ? user.getTotalCoinsEarned() : 0);
         stats.put("rewardsRedeemed", user.getRewardsRedeemed() != null ? user.getRewardsRedeemed() : 0);
         stats.put("coinsProgress", user.getCoinsProgress());
