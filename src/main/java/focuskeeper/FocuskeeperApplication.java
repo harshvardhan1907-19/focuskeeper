@@ -16,7 +16,6 @@ public class FocuskeeperApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(FocuskeeperApplication.class, args);
-
 	}
 
 	// @Bean

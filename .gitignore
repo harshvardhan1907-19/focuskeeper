@@ -1,10 +1,15 @@
+# ========================================
+# MAVEN / SPRING BOOT
+# ========================================
 HELP.md
 target/
-.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### STS ###
+# ========================================
+# IDE - STS (Spring Tool Suite)
+# ========================================
 .apt_generated
 .classpath
 .factorypath
@@ -13,13 +18,17 @@ target/
 .springBeans
 .sts4-cache
 
-### IntelliJ IDEA ###
-.idea
+# ========================================
+# IDE - IntelliJ IDEA
+# ========================================
+.idea/
 *.iws
 *.iml
 *.ipr
 
-### NetBeans ###
+# ========================================
+# IDE - NetBeans
+# ========================================
 /nbproject/private/
 /nbbuild/
 /dist/
@@ -29,5 +38,79 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-### VS Code ###
+# ========================================
+# IDE - VS Code
+# ========================================
 .vscode/
+
+# ========================================
+# ENVIRONMENT VARIABLES / SECRETS
+# ========================================
+.env
+*.env
+application-local.properties
+application-secret.properties
+
+# ========================================
+# LOGS
+# ========================================
+*.log
+logs/
+
+# ========================================
+# OS FILES
+# ========================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ========================================
+# NODE (for Capacitor frontend)
+# ========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+.capacitor/
+
+# ========================================
+# CAPACITOR ANDROID BUILD
+# ========================================
+capacitor/android/app/build/
+capacitor/android/.gradle/
+capacitor/android/local.properties
+capacitor/android/.idea/
+capacitor/android/captures/
+capacitor/android/*.iml
+capacitor/android/build/
+capacitor/android/app/release/
+
+# ========================================
+# BUILDS / ARTIFACTS
+# ========================================
+*.class
+*.jar
+!**/maven-wrapper.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+
+# ========================================
+# TESTING / COVERAGE
+# ========================================
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# ========================================
+# TEMP FILES
+# ========================================
+*.tmp
+*.swp
+*~
+.DS_Store

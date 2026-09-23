@@ -11,6 +11,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+
 @Repository
 public interface FocusSessionRepository extends JpaRepository<FocusSession, Long> {
 
@@ -59,4 +62,6 @@ public interface FocusSessionRepository extends JpaRepository<FocusSession, Long
                         @Param("endOfDay") LocalDateTime endOfDay);
 
         List<FocusSession> findByUserAndIsCompleted(User user, boolean completed);
+
+        List<FocusSession> findByUserOrderBySessionDateDesc(User user, Pageable pageable);
 }

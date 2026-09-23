@@ -59,12 +59,15 @@ public class User {
     private LocalDateTime lastRewardAt;
 
     public void addCoins(int amount) {
-        if (this.coins == null)
+        if (this.coins == null) {
             this.coins = 0;
-        if (this.totalCoinsEarned == null)
+        }
+        if (this.totalCoinsEarned == null) {
             this.totalCoinsEarned = 0;
+        }
         this.coins += amount;
         this.totalCoinsEarned += amount;
+        System.out.println("🪙 Added " + amount + " coins. Total: " + this.coins);
     }
 
     public boolean canRedeemReward() {

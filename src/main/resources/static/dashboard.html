@@ -13,15 +13,21 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Chart.js -->
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script> -->
-    <script src="./scripts/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 
     <!-- Google Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="./style/style.css">
     <link rel="stylesheet" href="./style/dashboard.css">
+
+    <!-- Eruda Debug Console -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>
+        eruda.init();
+        console.log('🔧 Eruda loaded!');
+    </script> -->
+
 </head>
 
 <body>
@@ -78,124 +84,89 @@
                     </div>
                 </div>
 
-                <div class="dashboard-grid">
-                    <!-- Timer Card -->
-                    <div class="dashboard-card timer-card">
-                        <h3>⏱️ Focus Timer</h3>
-                        <div class="timer-display">
-                            <span id="timerDisplay">25:00</span>
-                        </div>
-                        <div class="duration-controls">
-                            <label for="durationInput">Set Duration (minutes):</label>
-                            <div class="duration-input-group">
-                                <input type="number" id="durationInput" min="1" max="120" value="25">
-                                <button id="setDurationBtn" class="btn btn-primary">Set</button>
-                            </div>
-                            <div class="preset-buttons">
-                                <button class="btn-preset" data-minutes="5">5 min</button>
-                                <button class="btn-preset" data-minutes="15">15 min</button>
-                                <button class="btn-preset active" data-minutes="25">25 min</button>
-                                <button class="btn-preset" data-minutes="30">30 min</button>
-                                <button class="btn-preset" data-minutes="45">45 min</button>
-                                <button class="btn-preset" data-minutes="60">60 min</button>
-                            </div>
-                        </div>
-                        <div class="timer-controls">
-                            <button id="startTimer" class="btn btn-success">▶ Start</button>
-                            <button id="pauseTimer" class="btn btn-warning">⏸ Pause</button>
-                            <button id="resetTimer" class="btn btn-danger">⟳ Reset</button>
-                        </div>
-                        <div id="sessionStatus">
-                            Ready to focus!
-                        </div>
-                    </div>
-
-                    <!-- Profile Card -->
-                    <div class="dashboard-card profile-card">
-                        <h3>👤 My Profile</h3>
-                        <div class="profile-avatar">
-                            <span id="profileAvatar">👤</span>
-                        </div>
-                        <div id="profileInfo">
-                            <div class="profile-item">
-                                <span class="profile-label">📛 Username</span>
-                                <span id="profileUsername" class="profile-value"></span>
-                            </div>
-                            <div class="profile-item">
-                                <span class="profile-label">📧 Email</span>
-                                <span id="profileEmail" class="profile-value"></span>
-                            </div>
-                            <div class="profile-item">
-                                <span class="profile-label">👤 Full Name</span>
-                                <span id="profileFullName" class="profile-value"></span>
-                            </div>
-                            <div class="profile-item">
-                                <span class="profile-label">📅 Joined</span>
-                                <span id="profileJoined" class="profile-value">Aug 1, 2026, 01:08 AM</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Session History Card (Full Width) -->
-                <div class="dashboard-card history-card">
-                    <h3>📋 Session History</h3>
-                    <div id="sessionHistoryContainer">
-                        <div id="sessionHistoryList">
-                            <p style="color: #999; text-align: center;">Loading sessions...</p>
-                        </div>
-                        <div id="sessionSummary">
-                            <p style="text-align: center; color: #666;">
-                                <span id="totalSessionsDisplay">0</span> sessions |
-                                <span id="totalMinutesDisplay">0</span> minutes total
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Analytics Card -->
+                <!-- ========================================================== -->
+                <!-- FOCUS SESSION SECTION                                       -->
+                <!-- ========================================================== -->
                 <div class="dashboard-card" style="grid-column: 1 / -1;">
-                    <h3>📊 Focus Analytics</h3>
+                    <div class="card-body">
+                        <h3 class="card-title" style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+                            <span style="font-size:24px;">🎯</span> Focus Session
+                        </h3>
 
-                    <!-- Stats Summary Row -->
-                    <div class="analytics-stats-grid">
-                        <div class="analytics-stat">
-                            <span class="stat-number" id="totalSessionsAnalytics">0</span>
-                            <span class="stat-label">Total Sessions</span>
-                        </div>
-                        <div class="analytics-stat">
-                            <span class="stat-number" id="totalMinutesAnalytics">0</span>
-                            <span class="stat-label">Total Minutes</span>
-                        </div>
-                        <div class="analytics-stat">
-                            <span class="stat-number" id="streakCount">0</span>
-                            <span class="stat-label">🔥 Day Streak</span>
-                        </div>
-                        <div class="analytics-stat">
-                            <span class="stat-number" id="thisWeekMinutes">0</span>
-                            <span class="stat-label">This Week</span>
-                        </div>
-                    </div>
+                        <!-- FOCUS SETUP -->
+                        <div id="focusSetup">
+                            <div style="margin-bottom:16px;">
+                                <label
+                                    style="display:block;font-weight:600;margin-bottom:6px;color:#d2c4c4;font-size:14px;">
+                                    📝 What will you focus on?
+                                </label>
+                                <input type="text" id="focusTitle"
+                                    placeholder="E.g., I am learning Math Matrices chapter..." class="focus-input">
+                            </div>
 
-                    <!-- Weekly Chart -->
-                    <div class="chart-container">
-                        <canvas id="weeklyChart"></canvas>
-                    </div>
-
-                    <!-- Session Type Distribution -->
-                    <div class="chart-row">
-                        <div class="chart-container small-chart">
-                            <h4>Session Types</h4>
-                            <canvas id="typeChart"></canvas>
+                            <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+                                <div>
+                                    <label
+                                        style="display:block;font-weight:600;margin-bottom:6px;color:#d2c4c4;font-size:14px;">
+                                        ⏱️ Duration (minutes)
+                                    </label>
+                                    <input type="number" id="focusDuration" value="25" min="5" max="120"
+                                        class="focus-input-sm">
+                                </div>
+                                <button id="startFocusBtn" class="btn-start-focus" style="margin-top:20px;">
+                                    🚀 Start Focus Session
+                                </button>
+                            </div>
                         </div>
-                        <div class="chart-container small-chart">
-                            <h4>Completion Rate</h4>
-                            <canvas id="completionChart"></canvas>
+
+                        <!-- FOCUS STATUS -->
+                        <div id="focusStatus" class="focus-status-container">
+                            <div
+                                style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+                                <h4 style="margin:0;color:#2E7D32;font-size:18px;">⏱️ Session in Progress</h4>
+                                <span id="sessionQualityBadge" class="quality-badge">100% Quality</span>
+                            </div>
+
+                            <div style="margin-bottom:10px;">
+                                <span style="font-weight:600;color:#555;">📝 Title:</span>
+                                <span id="activeFocusTitle" style="color:#333;font-weight:500;"></span>
+                            </div>
+
+                            <div class="focus-timer" id="focusTimer">25:00</div>
+
+                            <div style="margin:8px 0 12px 0;">
+                                <div
+                                    style="display:flex;justify-content:space-between;font-size:12px;color:#666;margin-bottom:4px;">
+                                    <span>Progress</span>
+                                    <span id="focusProgressText">0%</span>
+                                </div>
+                                <div class="focus-progress-bar">
+                                    <div id="focusProgressBar" class="focus-progress-fill"></div>
+                                </div>
+                            </div>
+
+                            <div
+                                style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 0;border-top:1px solid rgba(0,0,0,0.06);margin-top:8px;">
+                                <span style="color:#555;font-size:14px;">📊 Quality Score</span>
+                                <span id="qualityDisplay"
+                                    style="font-weight:700;color:#2196F3;font-size:16px;">100%</span>
+                            </div>
+
+                            <p
+                                style="color:#888;font-size:12px;margin:10px 0 0 0;display:flex;align-items:center;gap:6px;">
+                                <span>💡</span> Quality decreases if you switch apps during the session
+                            </p>
+
+                            <button id="cancelFocusBtn" class="btn-cancel-focus">
+                                ✖ Cancel Session
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Coin & Reward Card -->
+                <!-- ========================================================== -->
+                <!-- COIN & REWARD CARD                                         -->
+                <!-- ========================================================== -->
                 <div class="dashboard-card"
                     style="grid-column: 1 / -1; background: linear-gradient(135deg, #FFD700, #FFA500); color: #1a2332;">
                     <div
@@ -209,7 +180,7 @@
                                 <span style="font-size: 20px; font-weight: 700;">🏆 Rewards: <span
                                         id="rewardsRedeemed">0</span></span>
                                 <span style="font-size: 16px;">|</span>
-                                <span style="font-size: 20px; font-weight: 700;">💰 <span id="nextRewardText">0</span>
+                                <span style="font-size: 20px; font-weight: 700;">💰 <span id="nextRewardText">50</span>
                                     coins to ₹30</span>
                             </div>
                         </div>
@@ -232,6 +203,66 @@
                         <span>50 coins</span>
                     </div>
                 </div>
+
+                <!-- ========================================================== -->
+                <!-- SESSION HISTORY CARD                                       -->
+                <!-- ========================================================== -->
+                <div class="dashboard-card history-card">
+                    <h3>📋 Session History</h3>
+                    <div id="sessionHistoryContainer">
+                        <div id="sessionHistoryList">
+                            <p style="color: #999; text-align: center;">Loading sessions...</p>
+                        </div>
+                        <div id="sessionSummary">
+                            <p style="text-align: center; color: #666;">
+                                <span id="totalSessionsDisplay">0</span> sessions |
+                                <span id="totalMinutesDisplay">0</span> minutes total
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========================================================== -->
+                <!-- ANALYTICS CARD                                             -->
+                <!-- ========================================================== -->
+                <div class="dashboard-card analytics-card">
+                    <h3>📊 Focus Analytics</h3>
+
+                    <div class="analytics-stats">
+                        <div class="analytics-stat">
+                            <span class="analytics-number" id="totalSessionsAnalytics">0</span>
+                            <span class="analytics-label">Total Sessions</span>
+                        </div>
+                        <div class="analytics-stat">
+                            <span class="analytics-number" id="totalMinutesAnalytics">0</span>
+                            <span class="analytics-label">Total Minutes</span>
+                        </div>
+                        <div class="analytics-stat">
+                            <span class="analytics-number" id="streakCount">0</span>
+                            <span class="analytics-label">🔥 Day Streak</span>
+                        </div>
+                        <div class="analytics-stat">
+                            <span class="analytics-number" id="thisWeekMinutes">0</span>
+                            <span class="analytics-label">This Week</span>
+                        </div>
+                    </div>
+
+                    <div class="chart-wrapper">
+                        <div class="chart-box full">
+                            <canvas id="weeklyChart"></canvas>
+                        </div>
+                        <div class="chart-box half">
+                            <h4>Session Types</h4>
+                            <canvas id="typeChart"></canvas>
+                        </div>
+                        <div class="chart-box half">
+                            <h4>Completion Rate</h4>
+                            <canvas id="completionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </main>
 
         <footer>
@@ -239,7 +270,7 @@
         </footer>
     </div>
 
-    <!-- app.js for shared functions, api.js for API calls, dashboard.js for dashboard logic -->
+    <!-- Scripts -->
     <script src="./scripts/app.js"></script>
     <script src="./scripts/api.js"></script>
     <script src="./scripts/dashboard.js"></script>
