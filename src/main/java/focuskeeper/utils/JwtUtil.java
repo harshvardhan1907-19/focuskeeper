@@ -1,21 +1,23 @@
 package focuskeeper.utils;
 
 import focuskeeper.config.SecurityConstants;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
 @Component
 public class JwtUtil {
+
+    @Autowired
+    private SecurityConstants securityConstants;
+
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(SecurityConstants.SECRET_KEY.getBytes());
+        return Keys.hmacShaKeyFor(securityConstants.getSecretKey().getBytes());
     }
 
     // extract the username from token
@@ -61,7 +63,7 @@ public class JwtUtil {
                 .setClaims(claims)
                 .setSubject(subject)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + SecurityConstants.EXPIRATION_TIME))
+                .setExpiration(new Date(System.currentTimeMillis() + securityConstants.getExpirationTime()))
                 .signWith(getSigningKey())
                 .compact();
     }

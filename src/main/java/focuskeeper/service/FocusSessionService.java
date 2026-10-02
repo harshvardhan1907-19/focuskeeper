@@ -342,7 +342,7 @@ public class FocusSessionService {
         // }
 
         // ✅ 15-19 minutes: 1 coin ONLY at 100% quality
-        if (duration >= 15 && duration <= 19) {
+        if (duration >= 1 && duration <= 3) {
             int coins = quality >= 100.0 ? 1 : 0;
             System.out.println("🪙 15-19 min, quality: " + quality + "% → " + coins + " coin");
             return coins;

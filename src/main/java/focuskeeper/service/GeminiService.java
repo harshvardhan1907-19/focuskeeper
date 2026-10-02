@@ -15,6 +15,9 @@ import java.net.URL;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Scanner;
+import com.google.genai.Client;
+import com.google.genai.types.GenerateContentResponse;
+import com.google.genai.types.HttpOptions;
 
 @Service
 public class GeminiService {
@@ -22,7 +25,7 @@ public class GeminiService {
     @Value("${gemini.api.key:}")
     private String apiKey;
 
-    @Value("${gemini.model:gemini-3.6-flash}")
+    @Value("${gemini.model:gemini-3.8-flash}")
     private String model;
 
     @PostConstruct
@@ -84,14 +87,17 @@ public class GeminiService {
     public boolean isTopicSpecific(String title) {
         try {
             String prompt = String.format(
-                "Does this title describe a specific study TOPIC (like 'DBMS', 'Python loops', 'English grammar') " +
-                "or just a generic activity (like 'doing homework', 'writing assignment', 'studying for exam')?\n\n" +
-                "Title: \"%s\"\n\n" +
-                "If the title contains a specific subject name (like a technology, language, science field, etc.), reply 'true'.\n" +
-                "If the title only describes the activity without naming a specific subject, reply 'false'.\n\n" +
-                "Reply ONLY 'true' or 'false'.",
-                title
-            );
+                    "Does this title describe a specific study TOPIC (like 'DBMS', 'Python loops', 'English grammar') "
+                            +
+                            "or just a generic activity (like 'doing homework', 'writing assignment', 'studying for exam')?\n\n"
+                            +
+                            "Title: \"%s\"\n\n" +
+                            "If the title contains a specific subject name (like a technology, language, science field, etc.), reply 'true'.\n"
+                            +
+                            "If the title only describes the activity without naming a specific subject, reply 'false'.\n\n"
+                            +
+                            "Reply ONLY 'true' or 'false'.",
+                    title);
             String result = callGeminiAPI(prompt).toLowerCase().trim();
             System.out.println("🔍 isTopicSpecific('" + title + "') → " + result);
             return result.contains("true");
@@ -106,112 +112,50 @@ public class GeminiService {
      */
     private String buildPrompt(String title) {
         return String.format(
-        "A student just studied this topic: \"%s\"\n\n" +
-        "⚠️ YOUR JOB: Generate 3 questions that test KNOWLEDGE about the SUBJECT, " +
-        "not about the activity of studying.\n\n" +
-        "❌ DO NOT ask:\n" +
-        "  - What is the assignment about?\n" +
-        "  - Is the student writing an assignment?\n" +
-        "  - What is the primary subject?\n" +
-        "  - Questions about the student's task or context\n\n" +
-        "✅ DO ask:\n" +
-        "  - Specific questions about facts, concepts, definitions, or methods\n" +
-        "  - Questions that require ACTUAL KNOWLEDGE of the topic\n\n" +
-        "Extract the SUBJECT from the title (e.g., 'DBMS', 'Python exception handling', " +
-        "'Modal auxiliaries') and generate questions about THAT SUBJECT.\n\n" +
-        "Return ONLY valid JSON (no markdown, no array):\n" +
-        "{\n" +
-        "  \"shortQuestion\": \"[A specific knowledge question about the SUBJECT]\",\n" +
-        "  \"shortAnswer\": \"[1-3 word reference answer]\",\n" +
-        "  \"trueFalseQuestion\": \"[A fact-based statement about the SUBJECT]\",\n" +
-        "  \"trueFalseAnswer\": true,\n" +
-        "  \"mcqQuestion\": \"[A knowledge-testing question about the SUBJECT]\",\n" +
-        "  \"mcqOptions\": {\"A\":\"...\",\"B\":\"...\",\"C\":\"...\",\"D\":\"...\"},\n" +
-        "  \"mcqAnswer\": \"[A/B/C/D]\"\n" +
-        "}",
-        title);
+                "A student just studied this topic: \"%s\"\n\n" +
+                        "⚠️ YOUR JOB: Generate 3 questions that test KNOWLEDGE about the SUBJECT, " +
+                        "not about the activity of studying.\n\n" +
+                        "❌ DO NOT ask:\n" +
+                        "  - What is the assignment about?\n" +
+                        "  - Is the student writing an assignment?\n" +
+                        "  - What is the primary subject?\n" +
+                        "  - Questions about the student's task or context\n\n" +
+                        "✅ DO ask:\n" +
+                        "  - Specific questions about facts, concepts, definitions, or methods\n" +
+                        "  - Questions that require ACTUAL KNOWLEDGE of the topic\n\n" +
+                        "Extract the SUBJECT from the title (e.g., 'DBMS', 'Python exception handling', " +
+                        "'Modal auxiliaries') and generate questions about THAT SUBJECT.\n\n" +
+                        "Return ONLY valid JSON (no markdown, no array):\n" +
+                        "{\n" +
+                        "  \"shortQuestion\": \"[A specific knowledge question about the SUBJECT]\",\n" +
+                        "  \"shortAnswer\": \"[1-3 word reference answer]\",\n" +
+                        "  \"trueFalseQuestion\": \"[A fact-based statement about the SUBJECT]\",\n" +
+                        "  \"trueFalseAnswer\": true,\n" +
+                        "  \"mcqQuestion\": \"[A knowledge-testing question about the SUBJECT]\",\n" +
+                        "  \"mcqOptions\": {\"A\":\"...\",\"B\":\"...\",\"C\":\"...\",\"D\":\"...\"},\n" +
+                        "  \"mcqAnswer\": \"[A/B/C/D]\"\n" +
+                        "}",
+                title);
     }
 
     /**
      * Call Gemini API
      */
     private String callGeminiAPI(String prompt) throws Exception {
-        String urlString = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key="
-                + apiKey;
+        Client client = Client.builder()
+                .apiKey(apiKey)
+                .build();
 
-        URL url = new URL(urlString);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("POST");
-        conn.setRequestProperty("Content-Type", "application/json");
-        conn.setDoOutput(true);
+        System.out.println("📡 Calling Gemini API via SDK (Developer API)...");
 
-        Gson gson = new Gson();
-        JsonObject requestBody = new JsonObject();
-        JsonArray contents = new JsonArray();
-        JsonObject content = new JsonObject();
-        JsonArray parts = new JsonArray();
-        JsonObject part = new JsonObject();
-        part.addProperty("text", prompt);
-        parts.add(part);
-        content.add("parts", parts);
-        contents.add(content);
-        requestBody.add("contents", contents);
+        GenerateContentResponse response = client.models.generateContent(
+                model,
+                prompt,
+                null);
 
-        JsonObject generationConfig = new JsonObject();
-        generationConfig.addProperty("temperature", 0.3);
-
-        // ✅ INCREASED from 400 to 2000 tokens
-        generationConfig.addProperty("maxOutputTokens", 2000);
-
-        // ✅ ADD THIS: Disable thinking to save tokens
-        JsonObject thinkingConfig = new JsonObject();
-        thinkingConfig.addProperty("thinkingBudget", 0);
-        generationConfig.add("thinkingConfig", thinkingConfig);
-
-        requestBody.add("generationConfig", generationConfig);
-
-        try (OutputStreamWriter writer = new OutputStreamWriter(conn.getOutputStream())) {
-            writer.write(requestBody.toString());
-            writer.flush();
-        }
-
-        int responseCode = conn.getResponseCode();
-        System.out.println("📡 Response Code: " + responseCode);
-
-        if (responseCode != 200) {
-            try (Scanner scanner = new Scanner(conn.getErrorStream())) {
-                String error = scanner.useDelimiter("\\A").next();
-                System.err.println("❌ Gemini API Error: " + error);
-                throw new Exception("Gemini API error: " + error);
-            }
-        }
-
-        try (Scanner scanner = new Scanner(conn.getInputStream())) {
-            String response = scanner.useDelimiter("\\A").next();
-            System.out.println("📝 Raw Response: " + response);
-
-            JsonObject jsonResponse = gson.fromJson(response, JsonObject.class);
-
-            // ✅ Concatenate ALL text parts
-            JsonArray parts1 = jsonResponse
-                .getAsJsonArray("candidates")
-                .get(0)
-                .getAsJsonObject()
-                .getAsJsonObject("content")
-                .getAsJsonArray("parts");
-
-            StringBuilder fullText = new StringBuilder();
-            for (int i = 0; i < parts1.size(); i++) {
-                JsonObject part1 = parts1.get(i).getAsJsonObject();
-                if (part1.has("text")) {
-                    fullText.append(part1.get("text").getAsString());
-                }
-            }
-            String text = fullText.toString();
-
-            System.out.println("📝 Combined text from " + parts1.size() + " parts: " + text);
-            return text;
-        }
+        String text = response.text();
+        System.out.println("📝 Gemini response: " + text);
+        return text;
     }
 
     /**
@@ -272,7 +216,7 @@ public class GeminiService {
                     if (obj.has("mcqOptions")) {
                         JsonObject optionsObj = obj.getAsJsonObject("mcqOptions");
                         Map<String, String> options = new LinkedHashMap<>();
-                        for (String key : new String[]{"A", "B", "C", "D"}) {
+                        for (String key : new String[] { "A", "B", "C", "D" }) {
                             if (optionsObj.has(key)) {
                                 options.put(key, optionsObj.get(key).getAsString());
                             }
@@ -287,20 +231,24 @@ public class GeminiService {
                 JsonObject json = gson.fromJson(cleanedResponse, JsonObject.class);
 
                 result.put("shortQuestion", json.has("shortQuestion")
-                    ? json.get("shortQuestion").getAsString() : "What did you learn?");
+                        ? json.get("shortQuestion").getAsString()
+                        : "What did you learn?");
                 result.put("shortAnswer", json.has("shortAnswer")
-                    ? json.get("shortAnswer").getAsString() : "concept");
+                        ? json.get("shortAnswer").getAsString()
+                        : "concept");
                 result.put("trueFalseQuestion", json.has("trueFalseQuestion")
-                    ? json.get("trueFalseQuestion").getAsString() : "Did you learn something?");
+                        ? json.get("trueFalseQuestion").getAsString()
+                        : "Did you learn something?");
                 result.put("trueFalseAnswer", json.has("trueFalseAnswer")
-                    && json.get("trueFalseAnswer").getAsBoolean());
+                        && json.get("trueFalseAnswer").getAsBoolean());
                 result.put("mcqQuestion", json.has("mcqQuestion")
-                    ? json.get("mcqQuestion").getAsString() : "What did you learn?");
+                        ? json.get("mcqQuestion").getAsString()
+                        : "What did you learn?");
 
                 Map<String, String> options = new LinkedHashMap<>();
                 if (json.has("mcqOptions")) {
                     JsonObject optionsObj = json.getAsJsonObject("mcqOptions");
-                    for (String key : new String[]{"A", "B", "C", "D"}) {
+                    for (String key : new String[] { "A", "B", "C", "D" }) {
                         if (optionsObj.has(key)) {
                             options.put(key, optionsObj.get(key).getAsString());
                         }
@@ -308,7 +256,8 @@ public class GeminiService {
                 }
                 result.put("mcqOptions", options);
                 result.put("mcqAnswer", json.has("mcqAnswer")
-                    ? json.get("mcqAnswer").getAsString() : "A");
+                        ? json.get("mcqAnswer").getAsString()
+                        : "A");
             }
 
             // Ensure all required fields
