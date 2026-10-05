@@ -899,7 +899,7 @@ function drawCompletionChart(weekly) {
         });
 
         requestAnimationFrame(() => {
-            requestAnimationFrlame(() => {
+            requestAnimationFrame(() => {
                 completionChart.resize();
             });
         });

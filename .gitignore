@@ -6,6 +6,8 @@ target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.properties
 
 # ========================================
 # IDE - STS (Spring Tool Suite)
@@ -46,16 +48,65 @@ build/
 # ========================================
 # ENVIRONMENT VARIABLES / SECRETS
 # ========================================
+# .env files
 .env
+.env.*
 *.env
+!.env.example
+
+# Spring Boot secrets
 application-local.properties
 application-secret.properties
+application-dev.properties
+application-prod.properties
+application-*.properties
+!application.properties
+
+# ========================================
+# CREDENTIALS / API KEYS  (IMPORTANT!)
+# ========================================
+# Google Cloud
+credentials.json
+serviceAccountKey.json
+service-account*.json
+gcp-*.json
+*google-api-key*
+*firebase-adminsdk*.json
+
+# Firebase
+google-services.json
+GoogleService-Info.plist
+firebase-config.js
+
+# AWS
+.aws/
+aws-credentials*
+*.pem
+
+# Generic secrets
+secrets/
+*secret*
+*credential*
+*api-key*
+*apikey*
+*private-key*
+
+# Certificates & keystores
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.cer
+*.crt
+*.key
+*.pem
 
 # ========================================
 # LOGS
 # ========================================
 *.log
 logs/
+spring.log
 
 # ========================================
 # OS FILES
@@ -87,12 +138,21 @@ capacitor/android/*.iml
 capacitor/android/build/
 capacitor/android/app/release/
 
+# Android signing (NEVER commit!)
+*.keystore
+*.jks
+keystore.properties
+signing.properties
+capacitor/android/app/*.keystore
+capacitor/android/app/*.jks
+
 # ========================================
 # BUILDS / ARTIFACTS
 # ========================================
 *.class
 *.jar
 !**/maven-wrapper.jar
+!**/gradle-wrapper.jar
 *.war
 *.ear
 *.zip
@@ -102,10 +162,7 @@ capacitor/android/app/release/
 # TESTING / COVERAGE
 # ========================================
 .gradle/
-build/
 !gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
 
 # ========================================
 # TEMP FILES
@@ -113,4 +170,19 @@ build/
 *.tmp
 *.swp
 *~
-.DS_Store
+*.bak
+*.orig
+
+# ========================================
+# DATABASE / SQLITE
+# ========================================
+*.sqlite3
+*.db
+*.sqlite
+
+# ========================================
+# JAVA / COMPILED
+# ========================================
+*.class
+hs_err_pid*
+replay_pid*

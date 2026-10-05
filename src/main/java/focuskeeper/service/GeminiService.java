@@ -25,7 +25,7 @@ public class GeminiService {
     @Value("${gemini.api.key:}")
     private String apiKey;
 
-    @Value("${gemini.model:gemini-3.8-flash}")
+    @Value("${gemini.model:gemini-3.5-flash}")
     private String model;
 
     @PostConstruct
