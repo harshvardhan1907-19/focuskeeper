@@ -326,31 +326,39 @@ function showQuestionModal(questions) {
     document.head.appendChild(style);
 
     // ✅ Event listener for submit
+
     document.getElementById("submitAnswersBtn").addEventListener("click", async function () {
-        // ✅ Disable button to prevent double submission
         this.disabled = true;
         this.textContent = '⏳ Submitting...';
 
+        // ✅ Get the modal container and scope all lookups to it
         const modalEl = document.getElementById('focusQuestionModal');
 
-        const shortAnswerInput = modalEl.querySelector('#shortAnswer');
-        const tfSelect = modalEl.querySelector('#trueFalseAnswer');
-        const mcqChecked = modalEl.querySelector("input[name='mcq']:checked");
+        // ✅ Read values with fallbacks and log them
+        const shortAnswerInput = modalEl ? modalEl.querySelector('#shortAnswer') : null;
+        const tfSelect = modalEl ? modalEl.querySelector('#trueFalseAnswer') : null;
+        const mcqChecked = modalEl ? modalEl.querySelector("input[name='mcq']:checked") : null;
 
-        const shortAnswer = shortAnswerInput ? shortAnswerInput.value.trim() : "";
-        const tfValue = tfSelect ? tfSelect.value : 'true';
-        const trueOrFalseAnswer = tfValue === 'true';
+        const shortAnswer = shortAnswerInput ? shortAnswerInput.value.trim() : '';
+
+        // ✅ Read the dropdown value directly
+        const tfRawValue = tfSelect ? tfSelect.value : '';
+        const trueOrFalseAnswer = tfRawValue === 'true';
+
+        // ✅ Read the MCQ radio value
         const mcqAnswer = mcqChecked ? mcqChecked.value : '';
 
-        console.log('📤 SUBMIT VALUES:');
-        console.log('   shortAnswer:', shortAnswer);
-        console.log('   tfValue (raw):', tfValue);
+        // ✅ Debug log — this is the smoking gun if the bug persists
+        console.log('📤 ============================');
+        console.log('📤 SUBMIT VALUES');
+        console.log('   shortAnswer:', JSON.stringify(shortAnswer));
+        console.log('   tfSelect.value:', JSON.stringify(tfRawValue));
         console.log('   trueOrFalseAnswer (bool):', trueOrFalseAnswer);
-        console.log('   mcqAnswer:', mcqAnswer);
-
-        // const shortAnswer = document.getElementById("shortAnswer").value.trim();
-        // const trueOrFalseAnswer = document.getElementById("trueFalseAnswer").value === 'true';
-        // const mcqAnswer = document.querySelector("input[name='mcq']:checked")?.value || 'A';
+        console.log('   mcqChecked.value:', JSON.stringify(mcqAnswer));
+        console.log('   modalEl exists:', !!modalEl);
+        console.log('   tfSelect exists:', !!tfSelect);
+        console.log('   mcqChecked exists:', !!mcqChecked);
+        console.log('📤 ============================');
 
         if (!shortAnswer) {
             alert("Please provide a short answer");
@@ -358,7 +366,6 @@ function showQuestionModal(questions) {
             this.textContent = '✅ Submit & Earn Coins';
             return;
         }
-
         if (!mcqAnswer) {
             alert("Please select an MCQ option");
             this.disabled = false;
@@ -377,7 +384,6 @@ function showQuestionModal(questions) {
             modalEl.remove();
             showFocusResults(result);
             await loadDashboard();
-
         } catch (error) {
             console.error('❌ Error completing session:', error);
             alert('Failed to complete session. Please try again.');
@@ -386,6 +392,7 @@ function showQuestionModal(questions) {
         }
     });
 }
+
 
 
 function showFocusResults(result) {
