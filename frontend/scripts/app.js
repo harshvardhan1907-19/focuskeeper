@@ -2,7 +2,7 @@
 // APP.JS - Shared functions
 // ========================================
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'https://focuskeeper-n981.onrender.com/api';
 
 // Check if user is logged in
 function isLoggedIn() {
