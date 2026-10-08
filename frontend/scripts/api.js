@@ -108,6 +108,19 @@ async function getUserStats(userId) {
     return fetchAPI(`/sessions/stats/${userId}`);
 }
 
+async function startFocusedSession(userId, durationMinutes, sessionType, title) {
+    console.log('🚀 Starting focused session...');
+    return fetchAPI('/sessions/start-focused', {
+        method: 'POST',
+        body: JSON.stringify({
+            userId: parseInt(userId),
+            durationMinutes,
+            sessionType,
+            title
+        })
+    });
+}
+
 async function startSession(userId, durationMinutes = 25, sessionType = 'POMODORO') {
     console.log('🚀 Starting session for user:', userId);
     return fetchAPI('/sessions/start', {
@@ -151,6 +164,44 @@ async function getCoinStats(userId) {
 async function redeemReward(userId) {
     console.log('🎁 Redeeming reward for user:', userId);
     return fetchAPI(`/sessions/coins/redeem/${userId}`, {
+        method: 'POST'
+    });
+}
+
+async function startFocusSession(userId, durationMinutes, sessionType, title) {
+    console.log('🚀 Starting focus session for user:', userId);
+    return fetchAPI('/sessions/start-focused', {
+        method: 'POST',
+        body: JSON.stringify({
+            userId: parseInt(userId),
+            durationMinutes,
+            sessionType,
+            title
+        })
+    });
+}
+
+async function getSessionQuestions(sessionId) {
+    console.log('📋 Getting session questions...');
+    return fetchAPI(`/sessions/questions/${sessionId}`);
+}
+
+async function completeFocusedSession(sessionId, shortAnswer, trueFalseAnswers, mcqAnswers) {
+    console.log('✅ Completing focused session...');
+    return fetchAPI('/sessions/complete-focus', {
+        method: 'POST',
+        body: JSON.stringify({
+            sessionId: parseInt(sessionId),
+            shortAnswer,
+            trueFalseAnswers,
+            mcqAnswers
+        })
+    });
+}
+
+async function registerAppSwitch(sessionId) {
+    console.log('📱 Registering app switch...');
+    return fetchAPI(`/sessions/switch/${sessionId}`, {
         method: 'POST'
     });
 }

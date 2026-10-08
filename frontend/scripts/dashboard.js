@@ -45,6 +45,375 @@ let weeklyChart = null;
 let typeChart = null;
 let completionChart = null;
 
+let activeFocusSessionId = null;
+let focusTimerInterval = null;
+let focusSeconds = 0;
+let focusSwitches = 0;
+let isFocusSessionActive = false;
+let isSessionCompleting = false;
+
+async function startFocusSession() {
+    const title = document.getElementById('focusTitle').value.trim();
+    const duration = parseInt(document.getElementById('focusDuration').value) || 25;
+
+
+    if (!title) {
+        alert("Please enter what you will focus on!");
+        return;
+    }
+
+    // ✅ Validate the title BEFORE starting the timer
+    try {
+        const check = await fetchAPI(`/sessions/validate-title?title=${encodeURIComponent(title)}`);
+        if (check.warning === true) {
+            alert('⚠️ ' + check.error);
+            return; // Don't start the session
+        }
+    } catch (err) {
+        console.warn('Title validation failed, continuing anyway:', err);
+    }
+
+
+    if (duration < 1) {
+        alert("Duration must be at least 1 minute!");
+        return;
+    }
+    if (duration > 120) {
+        alert("Duration cannot exceed 120 minutes!");
+        return;
+    }
+
+    try {
+        const result = await startFocusedSession(
+            currentUserId,
+            duration,
+            'POMODORO',
+            title
+        );
+
+        activeFocusSessionId = result.id;
+        focusSeconds = duration * 60;
+        focusSwitches = 0;
+        isFocusSessionActive = true;
+        isSessionCompleting = false;
+
+        // ✅ UPDATE UI USING CSS CLASSES - NO INLINE STYLES
+        const focusSetup = document.getElementById('focusSetup');
+        const focusStatus = document.getElementById('focusStatus');
+        const activeTitle = document.getElementById('activeFocusTitle');
+        const qualityDisplay = document.getElementById('qualityDisplay');
+        const qualityBadge = document.getElementById('sessionQualityBadge');
+        const progressBar = document.getElementById('focusProgressBar');
+        const progressText = document.getElementById('focusProgressText');
+
+        // Hide setup, show status
+        if (focusSetup) focusSetup.style.display = 'none';
+
+        // ✅ Just add the 'active' class - CSS handles everything!
+        if (focusStatus) {
+            focusStatus.classList.add('active');
+        }
+
+        // Update text content only (no inline styles)
+        if (activeTitle) activeTitle.textContent = title;
+        if (qualityDisplay) qualityDisplay.textContent = '100%';
+        if (qualityBadge) qualityBadge.textContent = '100% Quality';
+        if (progressBar) progressBar.style.width = '100%';
+        if (progressText) progressText.textContent = '100%';
+
+        // Clear any existing interval
+        if (focusTimerInterval) {
+            clearInterval(focusTimerInterval);
+            focusTimerInterval = null;
+        }
+
+        updateFocusTimerDisplay();
+        focusTimerInterval = setInterval(() => {
+            focusSeconds--;
+            updateFocusTimerDisplay();
+
+            if (focusSeconds <= 0) {
+                if (!isSessionCompleting) {
+                    isSessionCompleting = true;
+                    completeFocusSession();
+                }
+            }
+        }, 1000);
+
+        console.log('✅ Focus session started:', activeFocusSessionId);
+    } catch (error) {
+        console.error('❌ Failed to start focus session:', error);
+        alert('Failed to start focus session. Please try again.');
+    }
+}
+
+function updateFocusTimerDisplay() {
+    const minutes = Math.floor(focusSeconds / 60);
+    const seconds = focusSeconds % 60;
+    const timeString = String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+
+    // Try both possible element IDs
+    const timerEl = document.getElementById('focusTimer');
+    if (timerEl) {
+        timerEl.textContent = timeString;
+    }
+
+    // Update progress
+    const totalSeconds = parseInt(document.getElementById('focusDuration').value) * 60 || 1500;
+    const progress = totalSeconds > 0 ? ((totalSeconds - focusSeconds) / totalSeconds) * 100 : 0;
+    const progressBar = document.getElementById('focusProgressBar');
+    const progressText = document.getElementById('focusProgressText');
+
+    if (progressBar) {
+        progressBar.style.width = Math.min(progress, 100) + '%';
+    }
+    if (progressText) {
+        progressText.textContent = Math.round(Math.min(progress, 100)) + '%';
+    }
+}
+
+
+async function completeFocusSession() {
+    // ✅ Clear interval first
+    if (focusTimerInterval) {
+        clearInterval(focusTimerInterval);
+        focusTimerInterval = null;
+    }
+    isFocusSessionActive = false;
+
+    try {
+        const questions = await getSessionQuestions(activeFocusSessionId);
+        showQuestionModal(questions);
+    } catch (error) {
+        console.error('❌ Failed to load questions:', error);
+        alert('Failed to load questions. Please try again.');
+    }
+}
+
+function showQuestionModal(questions) {
+
+    // check bckend reject the title
+    if (questions.warning === true) {
+        console.log("⚠️ Backend rejected the title", questions.error);
+
+        alert('⚠️ ' + (questions.error || 'Please provide a more specific title.'));
+
+        // Reset the focus session UI
+        const focusSetup = document.getElementById("focusSetup");
+        const focusStatus = document.getElementById("focusStatus");
+
+        if (focusSetup) focusSetup.style.display = 'block';
+        if (focusStatus) focusStatus.style.display = 'none';
+
+        // Clear the title input so the user can retype
+        const titleInput = document.getElementById("focusTitle");
+        if (titleInput) {
+            titleInput.value = '';
+            titleInput.focus();
+        }
+
+        // Reset session state
+        isFocusSessionActive = false;
+        isSessionCompleting = false;
+        activeFocusSessionId = null;
+
+        return;
+
+    }
+
+    // ✅ Create modal with proper styling
+    const modal = document.createElement('div');
+    modal.id = 'focusQuestionModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+        padding: 20px;
+        animation: fadeIn 0.3s ease;
+    `;
+
+    // Build MCQ options
+    const mcqOptions = questions.mcqOptions || {};
+    let mcqHTML = '';
+    for (const [key, value] of Object.entries(mcqOptions)) {
+        mcqHTML += `
+            <label style="display:block;margin:8px 0;padding:10px 14px;border:2px solid #e9ecef;border-radius:8px;cursor:pointer;transition:border-color 0.3s, background 0.3s;" 
+                   onmouseover="this.style.borderColor='#4CAF50';this.style.background='#f0f8f0'" 
+                   onmouseout="this.style.borderColor='#e9ecef';this.style.background='transparent'">
+                <input type="radio" name="mcq" value="${key}" style="margin-right:10px;"> 
+                <strong>${key}.</strong> ${value}
+            </label>
+        `;
+    }
+
+    modal.innerHTML = `
+        <div style="background:white;border-radius:16px;padding:32px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h3 style="margin:0;color:#2E7D32;font-size:22px;">🧠 Session Complete!</h3>
+                <span style="background:#4CAF50;color:white;padding:4px 14px;border-radius:20px;font-size:13px;font-weight:600;">🎉 Earn Coins</span>
+            </div>
+            <p style="color:#666;margin-bottom:20px;font-size:15px;">Answer these questions to earn coins:</p>
+            
+            <!-- Question 1: Short Answer -->
+            <div style="margin-bottom:20px;">
+                <label style="font-weight:600;color:#333;display:block;margin-bottom:6px;">
+                    1. ${questions.shortQuestion || 'What did you focus on?'}
+                </label>
+                <input type="text" id="shortAnswer" 
+                       placeholder="Type your answer here..."
+                       style="width:100%;padding:12px 14px;border:1px solid #d0d7de;border-radius:8px;font-size:15px;background:#fafbfc;box-sizing:border-box;">
+            </div>
+            
+            <!-- Question 2: True/False -->
+            <div style="margin-bottom:20px;">
+                <label style="font-weight:600;color:#333;display:block;margin-bottom:6px;">
+                    2. ${questions.trueFalseQuestion || 'Did you stay focused?'}
+                </label>
+                <select id="trueFalseAnswer" style="width:100%;padding:12px 14px;border:1px solid #d0d7de;border-radius:8px;font-size:15px;background:#fafbfc;">
+                    <option value="true">✅ True</option>
+                    <option value="false">❌ False</option>
+                </select>
+            </div>
+            
+            <!-- Question 3: MCQ -->
+            <div style="margin-bottom:24px;">
+                <label style="font-weight:600;color:#333;display:block;margin-bottom:8px;">
+                    3. ${questions.mcqQuestion || 'What was the subject?'}
+                </label>
+                <div id="mcqOptionsContainer">
+                    ${mcqHTML}
+                </div>
+            </div>
+            
+            <!-- Submit Button -->
+            <button id="submitAnswersBtn" 
+                    style="width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#4CAF50,#43a047);color:white;font-weight:700;font-size:17px;cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;box-shadow:0 4px 16px rgba(76,175,80,0.3);">
+                ✅ Submit & Earn Coins
+            </button>
+            
+            <p style="text-align:center;color:#999;font-size:12px;margin-top:12px;">
+                ⚠️ You need 2 correct answers to earn coins
+            </p>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Add keyframe animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        #mcqOptionsContainer label:has(input:checked) {
+            border-color: #4CAF50;
+            background: #e8f5e9;
+        }
+        #shortAnswer:focus, #trueFalseAnswer:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76,175,80,0.15);
+        }
+    `;
+    document.head.appendChild(style);
+
+    // ✅ Event listener for submit
+
+    document.getElementById("submitAnswersBtn").addEventListener("click", async function () {
+        this.disabled = true;
+        this.textContent = '⏳ Submitting...';
+
+        // ✅ Get the modal container and scope all lookups to it
+        const modalEl = document.getElementById('focusQuestionModal');
+
+        // ✅ Read values with fallbacks and log them
+        const shortAnswerInput = modalEl ? modalEl.querySelector('#shortAnswer') : null;
+        const tfSelect = modalEl ? modalEl.querySelector('#trueFalseAnswer') : null;
+        const mcqChecked = modalEl ? modalEl.querySelector("input[name='mcq']:checked") : null;
+
+        const shortAnswer = shortAnswerInput ? shortAnswerInput.value.trim() : '';
+
+        // ✅ Read the dropdown value directly
+        const tfRawValue = tfSelect ? tfSelect.value : '';
+        const trueOrFalseAnswer = tfRawValue === 'true';
+
+        // ✅ Read the MCQ radio value
+        const mcqAnswer = mcqChecked ? mcqChecked.value : '';
+
+        // ✅ Debug log — this is the smoking gun if the bug persists
+        console.log('📤 ============================');
+        console.log('📤 SUBMIT VALUES');
+        console.log('   shortAnswer:', JSON.stringify(shortAnswer));
+        console.log('   tfSelect.value:', JSON.stringify(tfRawValue));
+        console.log('   trueOrFalseAnswer (bool):', trueOrFalseAnswer);
+        console.log('   mcqChecked.value:', JSON.stringify(mcqAnswer));
+        console.log('   modalEl exists:', !!modalEl);
+        console.log('   tfSelect exists:', !!tfSelect);
+        console.log('   mcqChecked exists:', !!mcqChecked);
+        console.log('📤 ============================');
+
+        if (!shortAnswer) {
+            alert("Please provide a short answer");
+            this.disabled = false;
+            this.textContent = '✅ Submit & Earn Coins';
+            return;
+        }
+        if (!mcqAnswer) {
+            alert("Please select an MCQ option");
+            this.disabled = false;
+            this.textContent = '✅ Submit & Earn Coins';
+            return;
+        }
+
+        try {
+            const result = await completeFocusedSession(
+                activeFocusSessionId,
+                shortAnswer,
+                trueOrFalseAnswer,
+                mcqAnswer
+            );
+
+            modalEl.remove();
+            showFocusResults(result);
+            await loadDashboard();
+        } catch (error) {
+            console.error('❌ Error completing session:', error);
+            alert('Failed to complete session. Please try again.');
+            this.disabled = false;
+            this.textContent = '✅ Submit & Earn Coins';
+        }
+    });
+}
+
+
+
+function showFocusResults(result) {
+    const quality = result.qualityScore || 0;
+    const coins = result.coinsEarned || 0;
+    const switches = result.appSwitches || 0;
+
+    let qualityText = quality >= 80 ? 'Excellent! 🎉' :
+        quality >= 60 ? 'Good! 👍' : 'Needs Improvement 💪';
+
+    let switchText = switches === 0 ? '✅ No app switches!' :
+        switches <= 2 ? `⚠️ ${switches} app switch${switches > 1 ? 'es' : ''}` :
+            `❌ ${switches} app switches (reduced quality)`;
+
+    alert(`🎯 Session Complete!\n\n` +
+        `📊 Quality: ${quality}% (${qualityText})\n` +
+        `🪙 Coins Earned: ${coins}\n` +
+        `📱 ${switchText}\n\n` +
+        `${coins > 0 ? '🎉 Great job! Keep focusing!' : '💪 Try to stay focused next time!'}`);
+}
+
 function safeSetTextContent(elementId, value) {
     const element = document.getElementById(elementId);
     if (element) {
@@ -292,7 +661,7 @@ async function startTimer() {
             }
 
             alert(`🎉 Focus session complete! Great job! (${currentDuration} minutes)`);
-            timerSeconds = currentDuration * 60;
+            timerSeconds = curfrentDuration * 60;
             updateTimerDisplay();
         }
     }, 1000);
@@ -701,8 +1070,119 @@ document.addEventListener('DOMContentLoaded', function () {
     if (redeemBtn) {
         redeemBtn.addEventListener('click', handleRedeemReward);
     }
+
+    const startFocusBtn = document.getElementById("startFocusBtn");
+    if (startFocusBtn) {
+        startFocusBtn.addEventListener('click', startFocusSession);
+    }
+
+    // focus session
+    const cancelFocusBtn = document.getElementById("cancelFocusBtn");
+    if (cancelFocusBtn) {
+        cancelFocusBtn.addEventListener('click', function () {
+            clearInterval(focusTimerInterval);
+            isFocusSessionActive = false;
+            document.getElementById('focusStatus').style.display = 'none';
+            document.getElementById('focusSetup').style.display = 'block';
+            alert('Session cancelled.');
+        });
+    }
+
     console.log('✅ Dashboard ready!');
 });
+
+
+// ========================================
+// APP SWITCH DETECTION
+// ========================================
+
+let lastAppFocusTime = Date.now();
+let isAppInBackground = false;
+let lastSwitchTime = 0;
+let isSwitchProcessing = false;
+let lastQuality = 100;
+
+// ✅ Detect when user switches to another app
+document.addEventListener('visibilitychange', function () {
+    const now = Date.now();
+
+    if (document.hidden) {
+        // App went to background (user switched apps)
+        console.log('📱 App went to background - potential app switch!');
+        isAppInBackground = true;
+
+        // Only register if a focus session is active
+        if (isFocusSessionActive && activeFocusSessionId) {
+            // Wait 2 seconds to confirm it's a real switch
+            setTimeout(() => {
+                if (isAppInBackground && isFocusSessionActive && !isSwitchProcessing) {
+                    // ✅ Prevent duplicate calls within 5 seconds
+                    if (now - lastSwitchTime > 5000) {
+                        lastSwitchTime = now;
+                        registerAppSwitchDetected(activeFocusSessionId);
+                    }
+                }
+            }, 2000);
+        }
+    } else {
+        // App came back to foreground
+        console.log('📱 App came back to foreground');
+        isAppInBackground = false;
+        lastAppFocusTime = Date.now();
+    }
+});
+
+// ✅ Register app switch with backend
+async function registerAppSwitchDetected(sessionId) {
+    // ✅ Prevent multiple concurrent calls
+    if (isSwitchProcessing) {
+        console.log('⏳ Switch already being processed, skipping...');
+        return;
+    }
+
+    isSwitchProcessing = true;
+
+    try {
+        console.log('📱 Registering app switch for session:', sessionId);
+        const result = await registerAppSwitch(sessionId);
+        console.log('✅ App switch registered:', result);
+
+        // ✅ Update quality display
+        const qualityDisplay = document.getElementById('qualityDisplay');
+        if (qualityDisplay && result.qualityScore) {
+            const newQuality = Math.round(result.qualityScore);
+            qualityDisplay.textContent = newQuality + '%';
+
+            // ✅ Log quality change
+            if (newQuality !== lastQuality) {
+                console.log(`📊 Quality changed: ${lastQuality}% → ${newQuality}%`);
+                lastQuality = newQuality;
+            }
+        }
+
+        // ✅ Update badge color
+        const qualityBadge = document.getElementById('sessionQualityBadge');
+        if (qualityBadge) {
+            const score = result.qualityScore || 100;
+            qualityBadge.textContent = Math.round(score) + '% Quality';
+            if (score < 80) {
+                qualityBadge.style.background = '#FF6B6B';
+                qualityBadge.textContent = '⚠️ ' + Math.round(score) + '% Quality';
+            } else if (score < 100) {
+                qualityBadge.style.background = '#F39C12';
+                qualityBadge.textContent = '⚡ ' + Math.round(score) + '% Quality';
+            } else {
+                qualityBadge.style.background = '#4CAF50';
+                qualityBadge.textContent = '✅ ' + Math.round(score) + '% Quality';
+            }
+        }
+
+    } catch (error) {
+        console.error('❌ Failed to register app switch:', error);
+    } finally {
+        isSwitchProcessing = false;
+    }
+}
 
 window.addEventListener('resize', () => {
     weeklyChart?.resize();
