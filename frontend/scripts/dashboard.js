@@ -223,22 +223,22 @@ function showQuestionModal(questions) {
             <p style="color:#666;margin-bottom:20px;">Answer these questions to earn coins:</p>
             
             <div style="margin-bottom:20px;">
-                <label style="font-weight:600;display:block;margin-bottom:6px;">1. ${questions.shortQuestion || 'What did you focus on?'}</label>
+                <label style="font-weight:600;display:block;margin-bottom:6px;color:rgba(0, 0, 0, 0.87);">1. ${questions.shortQuestion || 'What did you focus on?'}</label>
                 <input type="text" id="shortAnswer" placeholder="Type your answer..."
-                       style="width:100%;padding:12px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;">
+                       style="width:100%;padding:12px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;color:rgba(0, 0, 0, 0.87);">
             </div>
             
             <div style="margin-bottom:20px;">
-                <label style="font-weight:600;display:block;margin-bottom:6px;">2. ${questions.trueFalseQuestion || 'Did you stay focused?'}</label>
-                <select id="trueFalseAnswer" style="width:100%;padding:12px;border:1px solid #d0d7de;border-radius:8px;">
-                    <option value="true">✅ True</option>
-                    <option value="false">❌ False</option>
+                <label style="font-weight:600;display:block;margin-bottom:6px;color:rgba(0, 0, 0, 0.87);">2. ${questions.trueFalseQuestion || 'Did you stay focused?'}</label>
+                <select id="trueFalseAnswer" style="width:100%;padding:12px;border:1px solid #d0d7de;border-radius:8px;color:rgba(0, 0, 0, 0.87);">
+                    <option value="true" style="color:rgba(0, 0, 0, 0.87);">✅ True</option>
+                    <option value="false" style="color:rgba(0, 0, 0, 0.87);">❌ False</option>
                 </select>
             </div>
             
             <div style="margin-bottom:24px;">
-                <label style="font-weight:600;display:block;margin-bottom:8px;">3. ${questions.mcqQuestion || 'Pick the correct answer'}</label>
-                <div id="mcqContainer">${mcqHTML}</div>
+                <label style="font-weight:600;display:block;margin-bottom:8px;color:rgba(0, 0, 0, 0.87);">3. ${questions.mcqQuestion || 'Pick the correct answer'}</label>
+                <div id="mcqContainer" style="color:rgba(0, 0, 0, 0.87);">${mcqHTML}</div>
             </div>
             
             <button id="submitAnswersBtn"
