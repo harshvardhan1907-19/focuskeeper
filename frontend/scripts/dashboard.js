@@ -191,174 +191,101 @@ async function completeFocusSession() {
 }
 
 function showQuestionModal(questions) {
-
-    // check bckend reject the title
-    if (questions.warning === true) {
-        console.log("⚠️ Backend rejected the title", questions.error);
-
-        alert('⚠️ ' + (questions.error || 'Please provide a more specific title.'));
-
-        // Reset the focus session UI
-        const focusSetup = document.getElementById("focusSetup");
-        const focusStatus = document.getElementById("focusStatus");
-
-        if (focusSetup) focusSetup.style.display = 'block';
-        if (focusStatus) focusStatus.style.display = 'none';
-
-        // Clear the title input so the user can retype
-        const titleInput = document.getElementById("focusTitle");
-        if (titleInput) {
-            titleInput.value = '';
-            titleInput.focus();
-        }
-
-        // Reset session state
-        isFocusSessionActive = false;
-        isSessionCompleting = false;
-        activeFocusSessionId = null;
-
-        return;
-
+    // ✅ 1. Remove any stale modal first
+    const existing = document.getElementById('focusQuestionModal');
+    if (existing) {
+        console.log('🗑️ Removing stale modal');
+        existing.remove();
     }
 
-    // ✅ Create modal with proper styling
+    // ✅ 2. Build modal
     const modal = document.createElement('div');
     modal.id = 'focusQuestionModal';
     modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 99999;
-        padding: 20px;
-        animation: fadeIn 0.3s ease;
+        position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);
+        display:flex;align-items:center;justify-content:center;z-index:99999;padding:20px;
     `;
 
-    // Build MCQ options
     const mcqOptions = questions.mcqOptions || {};
     let mcqHTML = '';
     for (const [key, value] of Object.entries(mcqOptions)) {
         mcqHTML += `
-            <label style="display:block;margin:8px 0;padding:10px 14px;border:2px solid #e9ecef;border-radius:8px;cursor:pointer;transition:border-color 0.3s, background 0.3s;" 
-                   onmouseover="this.style.borderColor='#4CAF50';this.style.background='#f0f8f0'" 
-                   onmouseout="this.style.borderColor='#e9ecef';this.style.background='transparent'">
-                <input type="radio" name="mcq" value="${key}" style="margin-right:10px;"> 
+            <label style="display:block;margin:8px 0;padding:10px 14px;border:2px solid #e9ecef;border-radius:8px;cursor:pointer;">
+                <input type="radio" name="mcq" value="${key}" style="margin-right:10px;">
                 <strong>${key}.</strong> ${value}
             </label>
         `;
     }
 
     modal.innerHTML = `
-        <div style="background:white;border-radius:16px;padding:32px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                <h3 style="margin:0;color:#2E7D32;font-size:22px;">🧠 Session Complete!</h3>
-                <span style="background:#4CAF50;color:white;padding:4px 14px;border-radius:20px;font-size:13px;font-weight:600;">🎉 Earn Coins</span>
-            </div>
-            <p style="color:#666;margin-bottom:20px;font-size:15px;">Answer these questions to earn coins:</p>
+        <div style="background:white;border-radius:16px;padding:32px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;">
+            <h3 style="margin:0 0 16px 0;color:#2E7D32;font-size:22px;">🧠 Session Complete!</h3>
+            <p style="color:#666;margin-bottom:20px;">Answer these questions to earn coins:</p>
             
-            <!-- Question 1: Short Answer -->
             <div style="margin-bottom:20px;">
-                <label style="font-weight:600;color:#333;display:block;margin-bottom:6px;">
-                    1. ${questions.shortQuestion || 'What did you focus on?'}
-                </label>
-                <input type="text" id="shortAnswer" 
-                       placeholder="Type your answer here..."
-                       style="width:100%;padding:12px 14px;border:1px solid #d0d7de;border-radius:8px;font-size:15px;background:#fafbfc;box-sizing:border-box;">
+                <label style="font-weight:600;display:block;margin-bottom:6px;">1. ${questions.shortQuestion || 'What did you focus on?'}</label>
+                <input type="text" id="shortAnswer" placeholder="Type your answer..."
+                       style="width:100%;padding:12px;border:1px solid #d0d7de;border-radius:8px;box-sizing:border-box;">
             </div>
             
-            <!-- Question 2: True/False -->
             <div style="margin-bottom:20px;">
-                <label style="font-weight:600;color:#333;display:block;margin-bottom:6px;">
-                    2. ${questions.trueFalseQuestion || 'Did you stay focused?'}
-                </label>
-                <select id="trueFalseAnswer" style="width:100%;padding:12px 14px;border:1px solid #d0d7de;border-radius:8px;font-size:15px;background:#fafbfc;">
+                <label style="font-weight:600;display:block;margin-bottom:6px;">2. ${questions.trueFalseQuestion || 'Did you stay focused?'}</label>
+                <select id="trueFalseAnswer" style="width:100%;padding:12px;border:1px solid #d0d7de;border-radius:8px;">
                     <option value="true">✅ True</option>
                     <option value="false">❌ False</option>
                 </select>
             </div>
             
-            <!-- Question 3: MCQ -->
             <div style="margin-bottom:24px;">
-                <label style="font-weight:600;color:#333;display:block;margin-bottom:8px;">
-                    3. ${questions.mcqQuestion || 'What was the subject?'}
-                </label>
-                <div id="mcqOptionsContainer">
-                    ${mcqHTML}
-                </div>
+                <label style="font-weight:600;display:block;margin-bottom:8px;">3. ${questions.mcqQuestion || 'Pick the correct answer'}</label>
+                <div id="mcqContainer">${mcqHTML}</div>
             </div>
             
-            <!-- Submit Button -->
-            <button id="submitAnswersBtn" 
-                    style="width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#4CAF50,#43a047);color:white;font-weight:700;font-size:17px;cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;box-shadow:0 4px 16px rgba(76,175,80,0.3);">
+            <button id="submitAnswersBtn"
+                    style="width:100%;padding:14px;border:none;border-radius:10px;background:#4CAF50;color:white;font-weight:700;font-size:17px;cursor:pointer;">
                 ✅ Submit & Earn Coins
             </button>
-            
-            <p style="text-align:center;color:#999;font-size:12px;margin-top:12px;">
-                ⚠️ You need 2 correct answers to earn coins
-            </p>
         </div>
     `;
 
     document.body.appendChild(modal);
 
-    // Add keyframe animation
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        #mcqOptionsContainer label:has(input:checked) {
-            border-color: #4CAF50;
-            background: #e8f5e9;
-        }
-        #shortAnswer:focus, #trueFalseAnswer:focus {
-            outline: none;
-            border-color: #4CAF50;
-            box-shadow: 0 0 0 3px rgba(76,175,80,0.15);
-        }
-    `;
-    document.head.appendChild(style);
+    // ✅ 3. Submit handler — attach listeners to the CURRENT modal, not via global getElementById
+    const submitBtn = modal.querySelector('#submitAnswersBtn');
+    const tfEl = modal.querySelector('#trueFalseAnswer');
+    const shortEl = modal.querySelector('#shortAnswer');
+    const mcqContainer = modal.querySelector('#mcqContainer');
 
-    // ✅ Event listener for submit
-
-    document.getElementById("submitAnswersBtn").addEventListener("click", async function () {
+    submitBtn.addEventListener('click', async function () {
         this.disabled = true;
         this.textContent = '⏳ Submitting...';
 
-        // ✅ Get the modal container and scope all lookups to it
-        const modalEl = document.getElementById('focusQuestionModal');
+        // ✅ Read values directly from references (no document.getElementById)
+        const shortAnswer = shortEl.value.trim();
 
-        // ✅ Read values with fallbacks and log them
-        const shortAnswerInput = modalEl ? modalEl.querySelector('#shortAnswer') : null;
-        const tfSelect = modalEl ? modalEl.querySelector('#trueFalseAnswer') : null;
-        const mcqChecked = modalEl ? modalEl.querySelector("input[name='mcq']:checked") : null;
+        // ✅ Read the dropdown by iterating options (bulletproof)
+        let tfValue = 'false';
+        for (const opt of tfEl.options) {
+            if (opt.selected) {
+                tfValue = opt.value;
+                break;
+            }
+        }
+        const trueOrFalseAnswer = tfValue === 'true';
 
-        const shortAnswer = shortAnswerInput ? shortAnswerInput.value.trim() : '';
+        // ✅ Read the checked radio by querying inside this modal only
+        const checkedRadio = mcqContainer.querySelector("input[name='mcq']:checked");
+        const mcqAnswer = checkedRadio ? checkedRadio.value : '';
 
-        // ✅ Read the dropdown value directly
-        const tfRawValue = tfSelect ? tfSelect.value : '';
-        const trueOrFalseAnswer = tfRawValue === 'true';
-
-        // ✅ Read the MCQ radio value
-        const mcqAnswer = mcqChecked ? mcqChecked.value : '';
-
-        // ✅ Debug log — this is the smoking gun if the bug persists
-        console.log('📤 ============================');
-        console.log('📤 SUBMIT VALUES');
+        // ✅ Log everything
+        console.log('📤 ================================');
+        console.log('📤 SUBMIT DEBUG');
         console.log('   shortAnswer:', JSON.stringify(shortAnswer));
-        console.log('   tfSelect.value:', JSON.stringify(tfRawValue));
-        console.log('   trueOrFalseAnswer (bool):', trueOrFalseAnswer);
-        console.log('   mcqChecked.value:', JSON.stringify(mcqAnswer));
-        console.log('   modalEl exists:', !!modalEl);
-        console.log('   tfSelect exists:', !!tfSelect);
-        console.log('   mcqChecked exists:', !!mcqChecked);
-        console.log('📤 ============================');
+        console.log('   tfValue:', JSON.stringify(tfValue));
+        console.log('   trueOrFalseAnswer:', trueOrFalseAnswer);
+        console.log('   mcqAnswer:', JSON.stringify(mcqAnswer));
+        console.log('   checkedRadio:', checkedRadio);
+        console.log('📤 ================================');
 
         if (!shortAnswer) {
             alert("Please provide a short answer");
@@ -381,19 +308,17 @@ function showQuestionModal(questions) {
                 mcqAnswer
             );
 
-            modalEl.remove();
+            modal.remove();
             showFocusResults(result);
             await loadDashboard();
         } catch (error) {
-            console.error('❌ Error completing session:', error);
+            console.error('❌ Error:', error);
             alert('Failed to complete session. Please try again.');
             this.disabled = false;
             this.textContent = '✅ Submit & Earn Coins';
         }
     });
 }
-
-
 
 function showFocusResults(result) {
     const quality = result.qualityScore || 0;
@@ -412,6 +337,8 @@ function showFocusResults(result) {
         `🪙 Coins Earned: ${coins}\n` +
         `📱 ${switchText}\n\n` +
         `${coins > 0 ? '🎉 Great job! Keep focusing!' : '💪 Try to stay focused next time!'}`);
+
+    window.location.reload();
 }
 
 function safeSetTextContent(elementId, value) {

@@ -186,15 +186,15 @@ async function getSessionQuestions(sessionId) {
     return fetchAPI(`/sessions/questions/${sessionId}`);
 }
 
-async function completeFocusedSession(sessionId, shortAnswer, trueFalseAnswers, mcqAnswers) {
+async function completeFocusedSession(sessionId, shortAnswer, trueOrFalseAnswer, mcqAnswer) {
     console.log('✅ Completing focused session...');
     return fetchAPI('/sessions/complete-focus', {
         method: 'POST',
         body: JSON.stringify({
             sessionId: parseInt(sessionId),
             shortAnswer,
-            trueFalseAnswers,
-            mcqAnswers
+            trueOrFalseAnswer,
+            mcqAnswer
         })
     });
 }

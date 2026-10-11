@@ -375,7 +375,14 @@ public class FocusSessionService {
 
     private void validateAnswers(FocusSession session) {
         System.out.println("📝 ========================================");
-        System.out.println("📝 VALIDATING ANSWERS (AI-powered)");
+        System.out.println("📝 BACKEND RECEIVED");
+        System.out.println("   shortAnswer: '" + session.getShortAnswer() + "'");
+        System.out.println("   trueFalseAnswer: " + session.getTrueFalseAnswer());
+        System.out.println("   mcqAnswer: '" + session.getMcqAnswer() + "'");
+        System.out.println("   ---");
+        System.out.println("   expectedShort: '" + session.getShortAnswerExpected() + "'");
+        System.out.println("   expectedTrueFalse: " + session.getTrueFalseExpected());
+        System.out.println("   expectedMcq: '" + session.getMcqExpected() + "'");
         System.out.println("📝 ========================================");
 
         // Build the "original questions" map that GeminiService needs
