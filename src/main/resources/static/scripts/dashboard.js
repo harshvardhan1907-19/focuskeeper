@@ -52,138 +52,94 @@ let focusSwitches = 0;
 let isFocusSessionActive = false;
 let isSessionCompleting = false;
 
+let focusSessionStartTime = null;
+
 async function startFocusSession() {
-    const title = document.getElementById('focusTitle').value.trim();
-    const duration = parseInt(document.getElementById('focusDuration').value) || 25;
+    const subject = document.getElementById('focusSubject').value;
+    const topic = document.getElementById('focusTopic').value;
+    const difficulty = document.getElementById('focusDifficulty').value;
 
-
-    if (!title) {
-        alert("Please enter what you will focus on!");
+    if (!topic) {
+        alert("Please select a topic!");
         return;
     }
 
-    // ✅ Validate the title BEFORE starting the timer
+    const fullTitle = `${subject}: ${topic}`; // e.g., "Java: Hello World"
+
     try {
-        const check = await fetchAPI(`/sessions/validate-title?title=${encodeURIComponent(title)}`);
-        if (check.warning === true) {
-            alert('⚠️ ' + check.error);
-            return; // Don't start the session
+        const studyMaterialContainer = document.getElementById('studyMaterialContainer');
+        const studyMaterialText = document.getElementById('studyMaterialText');
+        studyMaterialContainer.style.display = "block";
+        studyMaterialText.textContent = "🤖 Generating study material... Please wait.";
+
+        // 1. Fetch study material
+        const studyResponse = await fetch(`${API_BASE_URL}/sessions/study-material`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subject, title: topic, difficulty })
+        });
+
+        const studyData = await studyResponse.json();
+        if (studyData.error) {
+            studyMaterialText.textContent = "❌ Error: " + studyData.error;
+            return;
         }
-    } catch (err) {
-        console.warn('Title validation failed, continuing anyway:', err);
-    }
+        studyMaterialText.textContent = studyData.studyMaterial;
 
-
-    if (duration < 1) {
-        alert("Duration must be at least 1 minute!");
-        return;
-    }
-    if (duration > 120) {
-        alert("Duration cannot exceed 120 minutes!");
-        return;
-    }
-
-    try {
-        const result = await startFocusedSession(
-            currentUserId,
-            duration,
-            'POMODORO',
-            title
-        );
+        // 2. Start the database session (We pass 0 for duration for now, we will update it when they finish)
+        const result = await startFocusedSession(currentUserId, 0, 'POMODORO', fullTitle);
 
         activeFocusSessionId = result.id;
-        focusSeconds = duration * 60;
+        focusSeconds = 0; // ✅ Starts at 0
+        focusSessionStartTime = Date.now(); // ✅ Record start time
         focusSwitches = 0;
         isFocusSessionActive = true;
-        isSessionCompleting = false;
 
-        // ✅ UPDATE UI USING CSS CLASSES - NO INLINE STYLES
-        const focusSetup = document.getElementById('focusSetup');
-        const focusStatus = document.getElementById('focusStatus');
-        const activeTitle = document.getElementById('activeFocusTitle');
-        const qualityDisplay = document.getElementById('qualityDisplay');
-        const qualityBadge = document.getElementById('sessionQualityBadge');
-        const progressBar = document.getElementById('focusProgressBar');
-        const progressText = document.getElementById('focusProgressText');
+        // 3. Update UI
+        document.getElementById('focusSetup').style.display = 'none';
+        document.getElementById('focusStatus').classList.add('active');
+        document.getElementById('activeFocusSubject').textContent = fullTitle;
 
-        // Hide setup, show status
-        if (focusSetup) focusSetup.style.display = 'none';
-
-        // ✅ Just add the 'active' class - CSS handles everything!
-        if (focusStatus) {
-            focusStatus.classList.add('active');
-        }
-
-        // Update text content only (no inline styles)
-        if (activeTitle) activeTitle.textContent = title;
-        if (qualityDisplay) qualityDisplay.textContent = '100%';
-        if (qualityBadge) qualityBadge.textContent = '100% Quality';
-        if (progressBar) progressBar.style.width = '100%';
-        if (progressText) progressText.textContent = '100%';
-
-        // Clear any existing interval
-        if (focusTimerInterval) {
-            clearInterval(focusTimerInterval);
-            focusTimerInterval = null;
-        }
+        // 4. Start Stopwatch (counts UP)
+        if (focusTimerInterval) clearInterval(focusTimerInterval);
 
         updateFocusTimerDisplay();
         focusTimerInterval = setInterval(() => {
-            focusSeconds--;
+            focusSeconds++; // ✅ Increment instead of decrement
             updateFocusTimerDisplay();
-
-            if (focusSeconds <= 0) {
-                if (!isSessionCompleting) {
-                    isSessionCompleting = true;
-                    completeFocusSession();
-                }
-            }
         }, 1000);
 
-        console.log('✅ Focus session started:', activeFocusSessionId);
     } catch (error) {
-        console.error('❌ Failed to start focus session:', error);
-        alert('Failed to start focus session. Please try again.');
+        console.error('❌ Error starting session:', error);
+        alert('Failed to start session.');
     }
 }
 
 function updateFocusTimerDisplay() {
-    const minutes = Math.floor(focusSeconds / 60);
+    const hours = Math.floor(focusSeconds / 3600);
+    const minutes = Math.floor((focusSeconds % 3600) / 60);
     const seconds = focusSeconds % 60;
-    const timeString = String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
 
-    // Try both possible element IDs
+    const timeString =
+        (hours > 0 ? String(hours).padStart(2, '0') + ':' : '') +
+        String(minutes).padStart(2, '0') + ':' +
+        String(seconds).padStart(2, '0');
+
     const timerEl = document.getElementById('focusTimer');
-    if (timerEl) {
-        timerEl.textContent = timeString;
-    }
-
-    // Update progress
-    const totalSeconds = parseInt(document.getElementById('focusDuration').value) * 60 || 1500;
-    const progress = totalSeconds > 0 ? ((totalSeconds - focusSeconds) / totalSeconds) * 100 : 0;
-    const progressBar = document.getElementById('focusProgressBar');
-    const progressText = document.getElementById('focusProgressText');
-
-    if (progressBar) {
-        progressBar.style.width = Math.min(progress, 100) + '%';
-    }
-    if (progressText) {
-        progressText.textContent = Math.round(Math.min(progress, 100)) + '%';
-    }
+    if (timerEl) timerEl.textContent = timeString;
 }
 
 
-async function completeFocusSession() {
-    // ✅ Clear interval first
-    if (focusTimerInterval) {
-        clearInterval(focusTimerInterval);
-        focusTimerInterval = null;
-    }
-    isFocusSessionActive = false;
-
+async function completeFocusSession(minutesSpent) {
     try {
+        console.log("🛑 Fetching test for session:", activeFocusSessionId, "Minutes spent:", minutesSpent);
+
+        // We store the minutes spent globally so the submit button can use it
+        window.currentSessionMinutes = minutesSpent;
+
         const questions = await getSessionQuestions(activeFocusSessionId);
         showQuestionModal(questions);
+
     } catch (error) {
         console.error('❌ Failed to load questions:', error);
         alert('Failed to load questions. Please try again.');
@@ -301,12 +257,16 @@ function showQuestionModal(questions) {
         }
 
         try {
-            const result = await completeFocusedSession(
-                activeFocusSessionId,
-                shortAnswer,
-                trueOrFalseAnswer,
-                mcqAnswer
-            );
+            const result = await fetchAPI('/sessions/complete-focus', {
+                method: 'POST',
+                body: JSON.stringify({
+                    sessionId: activeFocusSessionId,
+                    minutesSpent: window.currentSessionMinutes || 15, // Use the recorded time
+                    shortAnswer: shortAnswer,
+                    trueOrFalseAnswer: trueOrFalseAnswer,
+                    mcqAnswer: mcqAnswer
+                })
+            });
 
             modal.remove();
             showFocusResults(result);
@@ -998,20 +958,82 @@ document.addEventListener('DOMContentLoaded', function () {
         redeemBtn.addEventListener('click', handleRedeemReward);
     }
 
+    // ========================================
+    // SUBJECT INPUT & ROADMAP NAVIGATION
+    // ========================================
+    const subjectInput = document.getElementById('subjectNameInput');
+    const goToRoadmapBtn = document.getElementById('goToRoadmapBtn');
+    const chipBtns = document.querySelectorAll('.subject-chip-btn');
+
+    if (chipBtns.length > 0 && subjectInput) {
+        chipBtns.forEach(btn => {
+            btn.addEventListener('click', function () {
+                const subj = this.getAttribute('data-subject');
+                subjectInput.value = subj;
+                subjectInput.focus();
+            });
+        });
+    }
+
+    function navigateToRoadmap() {
+        const val = subjectInput ? subjectInput.value.trim() : '';
+        if (!val) {
+            alert('Please type a subject name (e.g. Maths, Science, Economics, Java, Python)!');
+            if (subjectInput) subjectInput.focus();
+            return;
+        }
+        localStorage.setItem('selectedSubject', val);
+        window.location.href = `/topics.html?subject=${encodeURIComponent(val)}`;
+    }
+
+    if (goToRoadmapBtn) {
+        goToRoadmapBtn.addEventListener('click', navigateToRoadmap);
+    }
+
+    if (subjectInput) {
+        subjectInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                navigateToRoadmap();
+            }
+        });
+    }
+
     const startFocusBtn = document.getElementById("startFocusBtn");
     if (startFocusBtn) {
         startFocusBtn.addEventListener('click', startFocusSession);
     }
 
-    // focus session
-    const cancelFocusBtn = document.getElementById("cancelFocusBtn");
-    if (cancelFocusBtn) {
-        cancelFocusBtn.addEventListener('click', function () {
+    // ✅ Add listener for Finish Button
+    const finishFocusBtn = document.getElementById("finishFocusBtn");
+    if (finishFocusBtn) {
+        finishFocusBtn.addEventListener('click', async function () {
+            if (!isFocusSessionActive) return;
+
+            // Stop the timer
             clearInterval(focusTimerInterval);
             isFocusSessionActive = false;
-            document.getElementById('focusStatus').style.display = 'none';
-            document.getElementById('focusSetup').style.display = 'block';
-            alert('Session cancelled.');
+
+            const minutesSpent = Math.max(1, Math.floor(focusSeconds / 60)); // At least 1 min
+
+            // Calculate Quality based on switches
+            const quality = calculateQuality(focusSwitches);
+
+            this.disabled = true;
+            this.textContent = '⏳ Saving Session...';
+
+            try {
+                // ✅ Update the session in the DB with the actual time spent before taking the test
+                // (You will need a small endpoint for this, but for now we proceed to the test)
+                console.log(`✅ User studied for ${minutesSpent} minutes.`);
+
+                // Call the complete session function which will trigger the AI test
+                await completeFocusSession(minutesSpent);
+
+            } catch (error) {
+                console.error("Finish error:", error);
+                this.disabled = false;
+                this.textContent = '✅ Finish & Take Test';
+            }
         });
     }
 

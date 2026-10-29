@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusKeeper - Learning & Practical Session</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#6C63FF">
+
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- CodeMirror 6 – all-in-one bundle exposing global CM namespace -->
+    <script src="https://cdn.jsdelivr.net/npm/codemirror@6.0.1/dist/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@codemirror/lang-java@6.0.1/dist/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@codemirror/lang-python@6.1.6/dist/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@codemirror/lang-javascript@6.2.2/dist/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@codemirror/theme-one-dark@6.1.2/dist/index.js"></script>
+
+    <!-- Expose language functions on the CM namespace -->
+    <script>
+        // Merge all @codemirror sub-packages into the global CM object
+        // (CDN UMD builds expose each package as a separate global)
+        window.CM = window.CM || {};
+        // codemirror bundle itself
+        if (window.codemirror) Object.assign(window.CM, window.codemirror);
+        // Language packs
+        if (window['@codemirror/lang-java'])    window.CM.java       = window['@codemirror/lang-java'].java;
+        if (window['@codemirror/lang-python'])  window.CM.python     = window['@codemirror/lang-python'].python;
+        if (window['@codemirror/lang-javascript']) window.CM.javascript = window['@codemirror/lang-javascript'].javascript;
+        if (window['@codemirror/theme-one-dark'])  window.CM.oneDark  = window['@codemirror/theme-one-dark'].oneDark;
+    </script>
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="./style/style.css">
+    <link rel="stylesheet" href="./style/dashboard.css">
+    <link rel="stylesheet" href="./style/session.css">
+</head>
+
+<body>
+    <div id="app">
+        <main>
+            <div class="session-container">
+                <!-- ========================================================== -->
+                <!-- TOP BAR (Meta Info on Left + Timer & Controls on Top-Right) -->
+                <!-- ========================================================== -->
+                <div class="session-topbar">
+                    <div class="session-meta-info">
+                        <a href="#" id="backToRoadmapLink" class="btn-back-dash" style="padding: 8px 14px; font-size: 13px;">
+                            <i class="fa-solid fa-arrow-left"></i> Roadmap
+                        </a>
+                        <span class="session-subject-tag" id="sessionSubjectTag">
+                            <i class="fa-solid fa-book-open"></i> <span id="sessionSubjectText">Subject</span>
+                        </span>
+                        <h2 class="session-topic-title" id="sessionTopicTitle">Topic Title</h2>
+                        <span class="diff-badge medium" id="sessionDifficultyBadge">MEDIUM</span>
+                    </div>
+
+                    <!-- Right Side Controls (Stopwatch, Quality, Pause, Stop) -->
+                    <div class="session-controls-right">
+                        <div class="timer-pill">
+                            <i class="fa-regular fa-clock" style="color:#38bdf8;"></i>
+                            <span class="stopwatch-display" id="sessionStopwatch">00:00</span>
+                        </div>
+
+                        <div class="quality-pill" id="sessionQualityBadge">
+                            🛡️ 100% Quality
+                        </div>
+
+                        <button id="pauseResumeBtn" class="btn-session-pause">
+                            <i class="fa-solid fa-pause"></i> Pause
+                        </button>
+
+                        <button id="stopSessionBtn" class="btn-session-stop">
+                            <i class="fa-solid fa-square"></i> Stop & Test
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ========================================================== -->
+                <!-- TWO-COLUMN WORKSPACE: LEARN ON SCREEN & PERFORM PRACTICALS -->
+                <!-- ========================================================== -->
+                <div class="workspace-grid">
+                    <!-- LEFT COLUMN: LEARN FROM SCREEN -->
+                    <div class="workspace-panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">
+                                <i class="fa-solid fa-graduation-cap" style="color:#a855f7;"></i>
+                                Study Material & Concepts
+                            </h3>
+                            <span style="font-size:12px; color:#94a3b8;">Learn from screen</span>
+                        </div>
+
+                        <div class="panel-body" id="studyMaterialBody">
+                            <div style="text-align:center; padding: 40px; color:#94a3b8;" id="studyLoadingState">
+                                <i class="fa-solid fa-spinner fa-spin fa-2x" style="color:#6c63ff;"></i>
+                                <p style="margin-top:14px; font-weight:600;">Generating AI study material for this topic...</p>
+                            </div>
+
+                            <div class="study-content-box" id="studyContentBox" style="display:none;">
+                                <!-- Dynamic content populated by session.js -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT COLUMN: PERFORM PRACTICALS -->
+                    <div class="workspace-panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">
+                                <i class="fa-solid fa-laptop-code" style="color:#10b981;"></i>
+                                Practical Setup
+                            </h3>
+                            <div class="practical-tabs">
+                                <button class="practical-tab-btn active" id="tabCodeBtn">
+                                    <i class="fa-solid fa-code"></i> Code Playground
+                                </button>
+                                <button class="practical-tab-btn" id="tabMathBtn">
+                                    <i class="fa-solid fa-calculator"></i> Math & Scratchpad
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="panel-body">
+                            <!-- Code Tab Content -->
+                            <div class="practical-tab-content active" id="codeTabContent">
+                                <div class="editor-header-bar">
+                                    <p style="font-size:13px; color:#94a3b8; margin:0;">
+                                        Write, modify, and test your code practicals directly below:
+                                    </p>
+                                    <div class="lang-badge" id="langBadge">
+                                        <i class="fa-solid fa-code"></i>
+                                        <span id="langBadgeText">Java</span>
+                                    </div>
+                                </div>
+
+                                <!-- CodeMirror Editor Mount Point -->
+                                <div id="codeEditorMount" class="code-editor-mount"></div>
+                                <!-- Hidden textarea kept for JS compatibility -->
+                                <textarea id="codeEditor" style="display:none;" spellcheck="false"></textarea>
+
+                                <div class="editor-actions-bar">
+                                    <button class="btn-run-code" id="runCodeBtn">
+                                        <i class="fa-solid fa-play"></i> Run Code
+                                    </button>
+                                    <button class="btn-secondary-action" id="resetCodeBtn" style="padding: 8px 14px; font-size: 13px;">
+                                        <i class="fa-solid fa-rotate-left"></i> Reset
+                                    </button>
+                                </div>
+
+                                <div style="font-size:12px; font-weight:700; color:#cbd5e1; margin-bottom:6px;">
+                                    🖥️ Execution Output:
+                                </div>
+                                <div class="console-output-box" id="consoleOutput">
+Ready to run your code practical...
+                                </div>
+                            </div>
+
+                            <!-- Math & Scratchpad Tab Content -->
+                            <div class="practical-tab-content" id="mathTabContent">
+                                <div class="math-scratchpad">
+                                    <div>
+                                        <label style="font-size:13px; font-weight:600; color:#cbd5e1; display:block; margin-bottom:6px;">
+                                            🧮 Interactive Formula & Equation Solver
+                                        </label>
+                                        <div class="math-calc-input-row">
+                                            <input type="text" id="mathInput" placeholder="e.g., (15 * 8) + Math.sqrt(144) or 2*Math.PI*5">
+                                            <button class="btn-eval-math" id="evalMathBtn">Solve</button>
+                                        </div>
+                                        <div id="mathResultDisplay" style="margin-top:8px; font-size:14px; color:#38bdf8; font-weight:700;"></div>
+                                    </div>
+
+                                    <div>
+                                        <label style="font-size:13px; font-weight:600; color:#cbd5e1; display:block; margin-bottom:6px;">
+                                            📝 Working Scratchpad & Problem Notes
+                                        </label>
+                                        <textarea id="scratchpadNotes" class="scratchpad-notes" placeholder="Write out your step-by-step calculations, formulas, or study notes here..."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ========================================================== -->
+    <!-- POST-SESSION TEST / QUIZ MODAL                             -->
+    <!-- ========================================================== -->
+    <div class="modal-overlay" id="quizModal">
+        <div class="modal-box" style="max-width: 650px; max-height: 90vh; overflow-y: auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="margin:0;">📝 Knowledge Check</h3>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="background:rgba(108,99,255,0.2); color:#c4b5fd; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:700;">
+                        3 Quick Questions
+                    </span>
+                    <button type="button" id="closeQuizModalBtn" style="background:rgba(255,255,255,0.08); border:none; color:#cbd5e1; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer;" title="Resume Session">✕</button>
+                </div>
+            </div>
+            <p class="modal-subtitle">Answer these questions based on what you studied to verify your understanding and earn coins!</p>
+
+            <div id="quizLoadingState" style="text-align:center; padding:30px; color:#94a3b8;">
+                <i class="fa-solid fa-spinner fa-spin fa-2x" style="color:#6c63ff;"></i>
+                <p style="margin-top:12px;">Generating quiz questions with Gemini...</p>
+            </div>
+
+            <div id="quizQuestionsContainer" style="display:none;">
+                <!-- Q1: Short Answer -->
+                <div class="quiz-question-card">
+                    <div class="quiz-q-num">Question 1 • Concept Recall</div>
+                    <div class="quiz-q-title" id="quizShortQ">Loading...</div>
+                    <input type="text" id="quizShortInput" class="short-answer-input" placeholder="Type your 1-3 word answer...">
+                </div>
+
+                <!-- Q2: True / False -->
+                <div class="quiz-question-card">
+                    <div class="quiz-q-num">Question 2 • True or False</div>
+                    <div class="quiz-q-title" id="quizTfQ">Loading...</div>
+                    <div class="tf-toggle-group">
+                        <div class="tf-btn" data-val="true" id="tfTrueBtn">True</div>
+                        <div class="tf-btn" data-val="false" id="tfFalseBtn">False</div>
+                    </div>
+                </div>
+
+                <!-- Q3: Multiple Choice -->
+                <div class="quiz-question-card">
+                    <div class="quiz-q-num">Question 3 • Multiple Choice</div>
+                    <div class="quiz-q-title" id="quizMcqQ">Loading...</div>
+                    <div class="mcq-options-list" id="mcqOptionsList">
+                        <!-- Options generated dynamically -->
+                    </div>
+                </div>
+
+                <div class="modal-actions" style="margin-top:24px;">
+                    <button class="btn-primary-action" id="submitQuizBtn" style="width:100%;">
+                        ✅ Submit Answers & Complete Session
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quiz Results Screen -->
+            <div id="quizResultsContainer" style="display:none; text-align:center; padding: 20px 0;">
+                <div style="font-size: 54px; margin-bottom: 12px;" id="resultEmoji">🎉</div>
+                <h3 id="resultTitle">Session Complete!</h3>
+                <p id="resultSubtitle" style="color:#cbd5e1; margin-bottom: 20px;">Great focus session!</p>
+
+                <div style="background:rgba(255,255,255,0.05); border-radius:16px; padding:18px; margin-bottom:24px; display:flex; justify-content:space-around;">
+                    <div>
+                        <div style="font-size:12px; color:#94a3b8;">Time Spent</div>
+                        <div style="font-size:20px; font-weight:800; color:#38bdf8;" id="resultTime">0 min</div>
+                    </div>
+                    <div>
+                        <div style="font-size:12px; color:#94a3b8;">Quiz Score</div>
+                        <div style="font-size:20px; font-weight:800; color:#34d399;" id="resultScore">0/3</div>
+                    </div>
+                    <div>
+                        <div style="font-size:12px; color:#94a3b8;">Coins Earned</div>
+                        <div style="font-size:20px; font-weight:800; color:#fbbf24;" id="resultCoins">🪙 +0</div>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="btn-primary-action" id="returnRoadmapBtn" style="width:100%;">
+                        🗺️ Return to Roadmap
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="./scripts/app.js"></script>
+    <script src="./scripts/api.js"></script>
+    <script src="./scripts/session.js"></script>
+</body>
+
+</html>

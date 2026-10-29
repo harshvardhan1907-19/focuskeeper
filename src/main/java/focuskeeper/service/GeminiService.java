@@ -30,6 +30,17 @@ public class GeminiService {
 
     @PostConstruct
     public void init() {
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            apiKey = System.getProperty("GCP_API_KEY");
+        }
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            apiKey = System.getenv("GCP_API_KEY");
+        }
+
+        if (model == null || model.contains("3.5") || model.isEmpty()) {
+            model = "gemini-flash-lite-latest";
+        }
+
         System.out.println("========================================");
         System.out.println("🤖 GEMINI SERVICE INITIALIZED");
         System.out.println("   API Key loaded: " + (apiKey != null && !apiKey.isEmpty()));
@@ -112,50 +123,65 @@ public class GeminiService {
      */
     private String buildPrompt(String title) {
         return String.format(
-                "A student just studied this topic: \"%s\"\n\n" +
-                        "⚠️ YOUR JOB: Generate 3 questions that test KNOWLEDGE about the SUBJECT, " +
-                        "not about the activity of studying.\n\n" +
-                        "❌ DO NOT ask:\n" +
-                        "  - What is the assignment about?\n" +
-                        "  - Is the student writing an assignment?\n" +
-                        "  - What is the primary subject?\n" +
-                        "  - Questions about the student's task or context\n\n" +
-                        "✅ DO ask:\n" +
-                        "  - Specific questions about facts, concepts, definitions, or methods\n" +
-                        "  - Questions that require ACTUAL KNOWLEDGE of the topic\n\n" +
-                        "Extract the SUBJECT from the title (e.g., 'DBMS', 'Python exception handling', " +
-                        "'Modal auxiliaries') and generate questions about THAT SUBJECT.\n\n" +
-                        "Return ONLY valid JSON (no markdown, no array):\n" +
+                "A student just completed studying the following topic: \"%s\".\n\n" +
+                        "Generate EXACTLY 3 challenging, meaningful educational questions to test their real conceptual knowledge and understanding of this topic:\n"
+                        +
+                        "1. A Short Answer question testing a core term, keyword, or definition (expecting a concise 1-3 word answer).\n"
+                        +
+                        "2. A factual True/False statement testing an important principle or common misconception about this topic.\n"
+                        +
+                        "3. A high-quality Multiple Choice Question (MCQ) testing practical syntax, calculation, or distinction between concepts with 4 distinct options (A, B, C, D).\n\n"
+                        +
+                        "Return ONLY valid JSON (no markdown backticks, no array, no other text):\n" +
                         "{\n" +
-                        "  \"shortQuestion\": \"[A specific knowledge question about the SUBJECT]\",\n" +
-                        "  \"shortAnswer\": \"[1-3 word reference answer]\",\n" +
-                        "  \"trueFalseQuestion\": \"[A fact-based statement about the SUBJECT]\",\n" +
+                        "  \"shortQuestion\": \"A specific technical or concept question about %s\",\n" +
+                        "  \"shortAnswer\": \"concise answer\",\n" +
+                        "  \"trueFalseQuestion\": \"A true/false statement about %s\",\n" +
                         "  \"trueFalseAnswer\": true,\n" +
-                        "  \"mcqQuestion\": \"[A knowledge-testing question about the SUBJECT]\",\n" +
+                        "  \"mcqQuestion\": \"A practical multiple choice question about %s\",\n" +
                         "  \"mcqOptions\": {\"A\":\"...\",\"B\":\"...\",\"C\":\"...\",\"D\":\"...\"},\n" +
-                        "  \"mcqAnswer\": \"[A/B/C/D]\"\n" +
+                        "  \"mcqAnswer\": \"A\"\n" +
                         "}",
-                title);
+                title, title, title, title);
     }
 
     /**
-     * Call Gemini API
+     * Call Gemini API with automatic model fallback
      */
     private String callGeminiAPI(String prompt) throws Exception {
         Client client = Client.builder()
                 .apiKey(apiKey)
                 .build();
 
-        System.out.println("📡 Calling Gemini API via SDK (Developer API)...");
-
-        GenerateContentResponse response = client.models.generateContent(
+        String[] modelsToTry = new String[] {
                 model,
-                prompt,
-                null);
+                "gemini-flash-lite-latest",
+                "gemini-flash-latest",
+                "gemini-pro-latest"
+        };
 
-        String text = response.text();
-        System.out.println("📝 Gemini response: " + text);
-        return text;
+        Exception lastException = null;
+        for (String m : modelsToTry) {
+            if (m == null || m.trim().isEmpty())
+                continue;
+            try {
+                System.out.println("📡 Calling Gemini API with model: " + m);
+                GenerateContentResponse response = client.models.generateContent(
+                        m,
+                        prompt,
+                        null);
+                String text = response.text();
+                if (text != null && !text.trim().isEmpty()) {
+                    System.out.println("✅ Gemini response received using model: " + m);
+                    return text;
+                }
+            } catch (Exception ex) {
+                System.err.println("⚠️ Model " + m + " failed: " + ex.getMessage());
+                lastException = ex;
+            }
+        }
+
+        throw lastException != null ? lastException : new RuntimeException("All Gemini models failed");
     }
 
     /**
@@ -287,33 +313,116 @@ public class GeminiService {
     }
 
     /**
-     * Fallback questions if Gemini fails
+     * Fallback questions if Gemini fails - provides realistic, meaningful concept
+     * questions
      */
-    private Map<String, Object> generateFallbackQuestions(String title) {
-        System.out.println("⚠️ Using fallback questions for: " + title);
-
+    public Map<String, Object> generateFallbackQuestions(String title) {
+        System.out.println("⚠️ Using intelligent concept fallback for: " + title);
         Map<String, Object> questions = new LinkedHashMap<>();
-        String[] words = title.toLowerCase().split(" ");
-        String topic = words.length > 0 ? words[0] : "study";
+        String lower = title != null ? title.toLowerCase() : "";
 
-        questions.put("shortQuestion", "What did you learn about " + topic + "? (2-3 words)");
-        questions.put("shortAnswer", topic);
-        questions.put("shortAnswerExpected", topic);
-        questions.put("trueFalseQuestion", "Did you learn something new about " + topic + "?");
-        questions.put("trueFalseAnswer", true);
-        questions.put("trueFalseExpected", true);
+        if (lower.contains("variable") || lower.contains("data type")) {
+            questions.put("shortQuestion",
+                    "In Python/Programming, which built-in function is used to check the data type of a variable?");
+            questions.put("shortAnswer", "type");
+            questions.put("shortAnswerExpected", "type");
 
-        Map<String, String> options = new LinkedHashMap<>();
-        options.put("A", "Yes, I learned something");
-        options.put("B", "No, I already knew everything");
-        options.put("C", "I'm not sure");
-        options.put("D", "I didn't focus");
-        questions.put("mcqOptions", options);
-        questions.put("mcqQuestion", "Did you learn something new during this session?");
-        questions.put("mcqAnswer", "A");
-        questions.put("mcqExpected", "A");
+            questions.put("trueFalseQuestion",
+                    "Variables in dynamic languages like Python can change their data type at runtime.");
+            questions.put("trueFalseAnswer", true);
+            questions.put("trueFalseExpected", true);
+
+            Map<String, String> options = new LinkedHashMap<>();
+            options.put("A", "int");
+            options.put("B", "tuple (immutable)");
+            options.put("C", "list (mutable)");
+            options.put("D", "dict");
+            questions.put("mcqOptions", options);
+            questions.put("mcqQuestion",
+                    "Which of the following data structures in Python is strictly immutable after creation?");
+            questions.put("mcqAnswer", "B");
+            questions.put("mcqExpected", "B");
+        } else if (lower.contains("function") || lower.contains("method")) {
+            questions.put("shortQuestion", "What keyword is used in Python to define a new function?");
+            questions.put("shortAnswer", "def");
+            questions.put("shortAnswerExpected", "def");
+
+            questions.put("trueFalseQuestion",
+                    "A function can accept arguments and optionally send back data using a return statement.");
+            questions.put("trueFalseAnswer", true);
+            questions.put("trueFalseExpected", true);
+
+            Map<String, String> options = new LinkedHashMap<>();
+            options.put("A", "Code reusability & modularity");
+            options.put("B", "Slowing down execution");
+            options.put("C", "Creating infinite loops");
+            options.put("D", "Increasing file size");
+            questions.put("mcqOptions", options);
+            questions.put("mcqQuestion", "What is the primary architectural purpose of defining functions?");
+            questions.put("mcqAnswer", "A");
+            questions.put("mcqExpected", "A");
+        } else if (lower.contains("loop") || lower.contains("flow") || lower.contains("control")) {
+            questions.put("shortQuestion",
+                    "Which keyword is used to terminate or exit a loop immediately before its condition is false?");
+            questions.put("shortAnswer", "break");
+            questions.put("shortAnswerExpected", "break");
+
+            questions.put("trueFalseQuestion",
+                    "An infinite loop occurs if the loop termination condition never evaluates to false.");
+            questions.put("trueFalseAnswer", true);
+            questions.put("trueFalseExpected", true);
+
+            Map<String, String> options = new LinkedHashMap<>();
+            options.put("A", "skip");
+            options.put("B", "continue");
+            options.put("C", "pass");
+            options.put("D", "break");
+            questions.put("mcqOptions", options);
+            questions.put("mcqQuestion",
+                    "Which statement skips the current iteration and jumps to the next cycle of the loop?");
+            questions.put("mcqAnswer", "B");
+            questions.put("mcqExpected", "B");
+        } else if (lower.contains("math") || lower.contains("algebra") || lower.contains("equation")) {
+            questions.put("shortQuestion", "In the equation 3x - 5 = 10, what is the value of x?");
+            questions.put("shortAnswer", "5");
+            questions.put("shortAnswerExpected", "5");
+
+            questions.put("trueFalseQuestion",
+                    "A linear equation in one variable always has exactly one unique solution.");
+            questions.put("trueFalseAnswer", true);
+            questions.put("trueFalseExpected", true);
+
+            Map<String, String> options = new LinkedHashMap<>();
+            options.put("A", "y = mx + c");
+            options.put("B", "ax^2 + bx + c = 0");
+            options.put("C", "a^2 + b^2 = c^2");
+            options.put("D", "x/y = k");
+            questions.put("mcqOptions", options);
+            questions.put("mcqQuestion", "What is the standard slope-intercept form of a straight line?");
+            questions.put("mcqAnswer", "A");
+            questions.put("mcqExpected", "A");
+        } else {
+            questions.put("shortQuestion", "What is the core fundamental principle behind " + title + "?");
+            questions.put("shortAnswer", "fundamentals");
+            questions.put("shortAnswerExpected", "fundamentals");
+
+            questions.put("trueFalseQuestion", "Mastering " + title
+                    + " requires understanding both its theoretical rules and practical applications.");
+            questions.put("trueFalseAnswer", true);
+            questions.put("trueFalseExpected", true);
+
+            Map<String, String> options = new LinkedHashMap<>();
+            options.put("A", "Testing edge cases and writing clean implementations");
+            options.put("B", "Skipping validation and documentation");
+            options.put("C", "Memorizing without understanding concepts");
+            options.put("D", "Ignoring syntax errors");
+            questions.put("mcqOptions", options);
+            questions.put("mcqQuestion", "What is the most effective approach to mastering " + title + "?");
+            questions.put("mcqAnswer", "A");
+            questions.put("mcqExpected", "A");
+        }
+
         questions.put("warning", false);
-
         return questions;
     }
 
@@ -398,5 +507,89 @@ public class GeminiService {
 
         System.out.println("🤖 TOTAL CORRECT: " + correct + "/3");
         return results;
+    }
+
+    /**
+     * Generate study material (theory, practical example, exercise, references) for
+     * a specific topic
+     */
+    public String generateStudyMaterial(String subject, String title, String difficulty) {
+        try {
+            String prompt = String.format(
+                    "You are an inspiring expert tutor for %s.\n" +
+                            "Generate clear, engaging study material for the topic: '%s' (Difficulty level: %s).\n\n" +
+                            "Structure your response with the following clearly labeled sections:\n\n" +
+                            "📘 CONCEPT & THEORY:\n" +
+                            "(Provide a clear, high-yield explanation in 2-4 sentences explaining the 'why' and 'how')\n\n"
+                            +
+                            "💻 PRACTICAL IMPLEMENTATION / WORKED EXAMPLE:\n" +
+                            "(Provide a clean, readable practical code snippet if programming, or step-by-step formula and solution if Maths/Science)\n\n"
+                            +
+                            "⚡ HANDS-ON PRACTICAL CHALLENGE:\n" +
+                            "(A specific mini-exercise the student should solve or code right now in their practical workspace)\n\n"
+                            +
+                            "📌 KEY REFERENCE & CHEAT SHEET:\n" +
+                            "(2-3 bullet points with rules of thumb, syntax tips, or common pitfalls)\n\n" +
+                            "Keep total length under 350 words so it is easy to read on screen.",
+                    subject, title, difficulty);
+
+            return callGeminiAPI(prompt);
+        } catch (Exception e) {
+            System.err.println("❌ Failed to generate study material: " + e.getMessage());
+            e.printStackTrace();
+
+            String lower = title.toLowerCase();
+            if (lower.contains("linear equation") || lower.contains("algebra")) {
+                return "📘 CONCEPT & THEORY:\n" +
+                        "Linear equations express relationships where variables have an exponent of 1 (e.g., ax + b = c). In algebra, solving for 'x' involves isolating the variable by performing balanced inverse operations on both sides of the equals sign.\n\n"
+                        +
+                        "💻 PRACTICAL IMPLEMENTATION / WORKED EXAMPLE:\n" +
+                        "Solve: 3x + 12 = 27\n" +
+                        "Step 1: Subtract 12 from both sides -> 3x = 15\n" +
+                        "Step 2: Divide both sides by 3 -> x = 5\n" +
+                        "Verification: 3(5) + 12 = 15 + 12 = 27 ✓\n\n" +
+                        "⚡ HANDS-ON PRACTICAL CHALLENGE:\n" +
+                        "In your scratchpad or calculator on the right, solve for y:\n" +
+                        "4y - 8 = 24. Calculate what y equals!\n\n" +
+                        "📌 KEY REFERENCE & CHEAT SHEET:\n" +
+                        "- Golden Rule: Whatever you do to one side of the equation, you MUST do to the other.\n" +
+                        "- Standard Slope-Intercept Form: y = mx + c (m = slope, c = y-intercept).\n" +
+                        "- Always check your solution by plugging it back into the original equation.";
+            } else if (lower.contains("variable") || lower.contains("data type")) {
+                return "📘 CONCEPT & THEORY:\n" +
+                        "Variables are named references to computer memory locations that store data. Data types define the nature of the data (such as numbers, text, or booleans) and determine what operations can legally be performed on them.\n\n"
+                        +
+                        "💻 PRACTICAL IMPLEMENTATION / WORKED EXAMPLE:\n" +
+                        "// Python Example:\n" +
+                        "user_age = 21          # Integer\n" +
+                        "user_score = 98.5       # Float\n" +
+                        "user_name = 'Alex'      # String\n" +
+                        "is_passed = True        # Boolean\n" +
+                        "print(f'{user_name} is {user_age} years old and scored {user_score}')\n\n" +
+                        "⚡ HANDS-ON PRACTICAL CHALLENGE:\n" +
+                        "Switch to the Code Playground on the right. Declare three variables (a string, an integer, and a boolean), concatenate them into a single output, and click 'Run Code'.\n\n"
+                        +
+                        "📌 KEY REFERENCE & CHEAT SHEET:\n" +
+                        "- Python is dynamically typed: variable types are inferred automatically at runtime.\n" +
+                        "- Immutable types (cannot change in-place): int, float, str, tuple.\n" +
+                        "- Mutable types (can modify contents): list, dict, set.";
+            } else {
+                return "📘 CONCEPT & THEORY:\n" +
+                        title + " is a foundational pillar in " + subject
+                        + ". Developing mastery requires understanding how core definitions connect to practical problem-solving rules.\n\n"
+                        +
+                        "💻 PRACTICAL IMPLEMENTATION / WORKED EXAMPLE:\n" +
+                        "Step 1: Break down the problem statement into knowns and unknowns.\n" +
+                        "Step 2: Apply the governing formulas or syntax conventions for " + title + ".\n" +
+                        "Step 3: Verify the output against edge cases or test inputs.\n\n" +
+                        "⚡ HANDS-ON PRACTICAL CHALLENGE:\n" +
+                        "Use the practical workspace on the right to implement a clean demonstration solving a problem for "
+                        + title + ".\n\n" +
+                        "📌 KEY REFERENCE & CHEAT SHEET:\n" +
+                        "- Review standard syntax and notation conventions.\n" +
+                        "- Break complex problems down into modular mini-steps.\n" +
+                        "- Validate edge cases before concluding.";
+            }
+        }
     }
 }

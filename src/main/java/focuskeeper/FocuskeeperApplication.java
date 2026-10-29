@@ -14,6 +14,28 @@ import focuskeeper.service.UserService;
 @SpringBootApplication
 public class FocuskeeperApplication {
 
+	static {
+		try {
+			java.io.File envFile = new java.io.File(".env");
+			if (envFile.exists()) {
+				for (String line : java.nio.file.Files.readAllLines(envFile.toPath())) {
+					line = line.trim();
+					if (!line.isEmpty() && !line.startsWith("#") && line.contains("=")) {
+						int idx = line.indexOf('=');
+						String key = line.substring(0, idx).trim();
+						String val = line.substring(idx + 1).trim();
+						if (System.getProperty(key) == null) {
+							System.setProperty(key, val);
+						}
+					}
+				}
+				System.out.println("✅ .env file loaded into System properties successfully!");
+			}
+		} catch (Exception e) {
+			System.err.println("⚠️ Could not load .env: " + e.getMessage());
+		}
+	}
+
 	public static void main(String[] args) {
 		SpringApplication.run(FocuskeeperApplication.class, args);
 	}

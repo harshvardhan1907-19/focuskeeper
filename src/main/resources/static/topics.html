@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusKeeper - Learning Roadmap</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#6C63FF">
+
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="./style/style.css">
+    <link rel="stylesheet" href="./style/dashboard.css">
+    <link rel="stylesheet" href="./style/topics.css">
+</head>
+
+<body>
+    <div id="app">
+        <header>
+            <h1>🎯 FocusKeeper</h1>
+            <nav id="nav-menu">
+                <a href="/dashboard.html">Dashboard</a>
+                <a href="#" id="logoutLink">Logout</a>
+            </nav>
+        </header>
+
+        <main>
+            <div class="topics-page-container">
+                <!-- Roadmap Header -->
+                <div class="roadmap-header">
+                    <div class="roadmap-title-area">
+                        <h2><span id="subjectIcon">📚</span> <span id="subjectTitle">Subject</span> Roadmap</h2>
+                        <p>Follow the path, complete practical sessions, and master each topic!</p>
+                    </div>
+
+                    <div class="roadmap-stats-pill">
+                        <span class="progress-text"><span id="completedCount">0</span> of <span id="totalCount">0</span> Mastered</span>
+                        <div class="progress-bar-wrap">
+                            <div class="progress-bar-fill" id="progressBarFill"></div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <select id="roadmapSubjectSwitcher" class="focus-input" style="padding:9px 14px; font-size:13px; font-weight:700; border-radius:12px; background:rgba(15,23,42,0.85); color:#fff; border:1px solid rgba(255,255,255,0.18); cursor:pointer;">
+                            <option value="Maths">📐 Maths</option>
+                            <option value="Science">🔬 Science</option>
+                            <option value="Economics">📈 Economics</option>
+                            <option value="Java">☕ Java</option>
+                            <option value="Python">🐍 Python</option>
+                        </select>
+                        <a href="/dashboard.html" class="btn-back-dash">
+                            <i class="fa-solid fa-arrow-left"></i> Dashboard
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Roadmap Arena with Connected Nodes -->
+                <div class="roadmap-arena" id="roadmapArena">
+                    <!-- SVG Path layer -->
+                    <svg class="roadmap-svg-canvas" id="roadmapSvgCanvas"></svg>
+
+                    <!-- Nodes will be rendered here dynamically -->
+                    <div class="nodes-container" id="nodesContainer">
+                        <div style="text-align:center; padding: 40px; color:#94a3b8;">
+                            <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+                            <p style="margin-top:12px;">Loading your learning roadmap...</p>
+                        </div>
+                    </div>
+
+                    <!-- Custom Topic Branch Row -->
+                    <div class="custom-branch-row">
+                        <button class="custom-node-btn" id="openCustomTopicModalBtn">
+                            <span class="plus-icon"><i class="fa-solid fa-plus"></i></span>
+                            <span>Add Custom Topic</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 FocusKeeper - Gamified Learning & Focus</p>
+        </footer>
+    </div>
+
+    <!-- ========================================================== -->
+    <!-- DIFFICULTY SELECTOR MODAL                                   -->
+    <!-- ========================================================== -->
+    <div class="modal-overlay" id="difficultyModal">
+        <div class="modal-box">
+            <h3 id="modalTopicTitle">Topic Title</h3>
+            <p class="modal-subtitle">Choose your challenge level before starting the practical focus session.</p>
+
+            <div class="difficulty-options-grid">
+                <div class="difficulty-choice-card" data-diff="LOW">
+                    <span class="diff-emoji">🌱</span>
+                    <span class="diff-name">Low</span>
+                    <span class="diff-desc">Beginner friendly & foundational</span>
+                </div>
+                <div class="difficulty-choice-card selected" data-diff="MEDIUM">
+                    <span class="diff-emoji">⚡</span>
+                    <span class="diff-name">Medium</span>
+                    <span class="diff-desc">Balanced theory & practicals</span>
+                </div>
+                <div class="difficulty-choice-card" data-diff="HIGH">
+                    <span class="diff-emoji">🔥</span>
+                    <span class="diff-name">High</span>
+                    <span class="diff-desc">Deep-dive & advanced nuances</span>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-secondary-action" id="closeDiffModalBtn">Cancel</button>
+                <button class="btn-primary-action" id="confirmStartSessionBtn">
+                    🚀 Start Session
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================== -->
+    <!-- CUSTOM TOPIC MODAL                                         -->
+    <!-- ========================================================== -->
+    <div class="modal-overlay" id="customTopicModal">
+        <div class="modal-box">
+            <h3>➕ Add Custom Topic</h3>
+            <p class="modal-subtitle">Add any specific topic you wish to study in <span id="customModalSubjectName" style="color:#a855f7; font-weight:700;">Java</span>.</p>
+
+            <div class="modal-input-group">
+                <label for="customTopicInput">Topic Name</label>
+                <input type="text" id="customTopicInput" placeholder="e.g., Multithreading, Dijkstra Algorithm, Recursion...">
+            </div>
+
+            <div class="modal-input-group">
+                <label>Default Difficulty</label>
+                <div class="difficulty-options-grid" id="customDiffGrid" style="margin-top:6px; margin-bottom:12px;">
+                    <div class="difficulty-choice-card" data-diff="LOW">
+                        <span class="diff-emoji">🌱</span>
+                        <span class="diff-name">Low</span>
+                    </div>
+                    <div class="difficulty-choice-card selected" data-diff="MEDIUM">
+                        <span class="diff-emoji">⚡</span>
+                        <span class="diff-name">Medium</span>
+                    </div>
+                    <div class="difficulty-choice-card" data-diff="HIGH">
+                        <span class="diff-emoji">🔥</span>
+                        <span class="diff-name">High</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-secondary-action" id="closeCustomModalBtn">Cancel</button>
+                <button class="btn-primary-action" id="saveCustomTopicBtn">
+                    Add to Roadmap
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="./scripts/app.js"></script>
+    <script src="./scripts/api.js"></script>
+    <script src="./scripts/topics.js"></script>
+</body>
+
+</html>

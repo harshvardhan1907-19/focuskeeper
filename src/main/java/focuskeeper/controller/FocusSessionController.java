@@ -24,6 +24,33 @@ public class FocusSessionController {
     @Autowired
     private GeminiService geminiService;
 
+    /**
+     * Generate study material for a topic
+     * POST /api/sessions/study-material
+     */
+    @PostMapping("/study-material")
+    public ResponseEntity<?> getStudyMaterial(@RequestBody Map<String, String> request) {
+        try {
+            String subject = request.get("subject");
+            String title = request.get("title");
+            String difficulty = request.getOrDefault("difficulty", "MEDIUM");
+
+            if (subject == null || title == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Subject and title are required"));
+            }
+
+            System.out.println("📖 Fetching study material for: " + title);
+            String material = geminiService.generateStudyMaterial(subject, title, difficulty);
+
+            return ResponseEntity.ok(Map.of(
+                    "subject", subject,
+                    "title", title,
+                    "studyMaterial", material));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/test-gemini")
     public ResponseEntity<?> testGemini(@RequestParam String title) {
         System.out.println("🧪 TEST GEMINI CALLED: " + title);
@@ -145,7 +172,16 @@ public class FocusSessionController {
                     ? request.get("mcqAnswer").toString()
                     : "A";
 
-            FocusSession session = sessionService.completeSession(sessionId, shortAnswer, trueOrFalseAnswer, mcqAnswer);
+            Integer durationMinutes = request.containsKey("durationMinutes") && request.get("durationMinutes") != null
+                    ? Integer.valueOf(request.get("durationMinutes").toString())
+                    : null;
+
+            FocusSession session;
+            if (durationMinutes != null && durationMinutes > 0) {
+                session = sessionService.completeSessionWithTime(sessionId, durationMinutes, shortAnswer, trueOrFalseAnswer, mcqAnswer);
+            } else {
+                session = sessionService.completeSession(sessionId, shortAnswer, trueOrFalseAnswer, mcqAnswer);
+            }
 
             Map<String, Object> response = new HashMap<>();
             response.put("sessionId", session.getId());

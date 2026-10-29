@@ -58,6 +58,17 @@ public class User {
     @Column(name = "last_reward_at")
     private LocalDateTime lastRewardAt;
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Topic> topics = new ArrayList<>();
+
+    public List<Topic> getTopics() {
+        return topics;
+    }
+
+    public void setTopics(List<Topic> topics) {
+        this.topics = topics;
+    }
+
     public void addCoins(int amount) {
         if (this.coins == null) {
             this.coins = 0;

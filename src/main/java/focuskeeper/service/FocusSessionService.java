@@ -46,27 +46,20 @@ public class FocusSessionService {
             questions.put("sessionId", session.getId());
             questions.put("title", title);
 
-            // Validate title
-            boolean isMeaningful = geminiService.validateTitle(title);
-            System.out.println("🤖 Is meaningful: " + isMeaningful);
-
-            if (!isMeaningful) {
-                questions.put("error", "Please provide a more specific title.");
-                questions.put("warning", true);
-                return questions;
-            }
-
-            // Check if title names a specific subject
-            boolean isTopicSpecific = geminiService.isTopicSpecific(title);
-            if (!isTopicSpecific) {
-                questions.put("error", "Please include the specific SUBJECT in your title. " +
-                                    "Example: 'DBMS normalization' instead of 'writing DBMS assignment'.");
-                questions.put("warning", true);
-                return questions;
+            // If title contains colon (e.g. "Python: Variables & Data Types"), it's already a curated topic
+            boolean isCuratedTopic = title.contains(":");
+            if (!isCuratedTopic) {
+                // Validate title
+                boolean isMeaningful = geminiService.validateTitle(title);
+                if (!isMeaningful) {
+                    questions.put("error", "Please provide a more specific title.");
+                    questions.put("warning", true);
+                    return questions;
+                }
             }
 
             // ✅ Generate questions with Gemini
-            System.out.println("🤖 Calling Gemini for questions...");
+            System.out.println("🤖 Calling Gemini for questions on: " + title);
             Map<String, Object> aiQuestions = geminiService.generateQuestions(title);
             System.out.println("🤖 AI Questions: " + aiQuestions);
 
@@ -91,6 +84,19 @@ public class FocusSessionService {
             e.printStackTrace();
             return generateFallbackQuestions(sessionId);
         }
+    }
+
+    @Transactional
+    public FocusSession completeSessionWithTime(Long sessionId, Integer minutesSpent, String shortAnswer,
+            Boolean trueOrFalseAnswer, String mcqAnswer) {
+        FocusSession session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new RuntimeException("Session not found with id: " + sessionId));
+
+        // ✅ Update the duration with how long they actually read!
+        session.setDurationMinutes(minutesSpent);
+
+        // Now run the normal complete session logic
+        return completeSession(sessionId, shortAnswer, trueOrFalseAnswer, mcqAnswer);
     }
 
     private Map<String, Object> generateFallbackQuestions(Long sessionId) {
@@ -265,6 +271,16 @@ public class FocusSessionService {
         session.setTrueFalseAnswer(trueOrFalseAnswer);
         session.setMcqAnswer(mcqAnswer);
 
+        // ✅ If durationMinutes was not set, calculate from timestamps
+        if (session.getDurationMinutes() == null || session.getDurationMinutes() <= 0) {
+            if (session.getCreatedAt() != null) {
+                long mins = java.time.temporal.ChronoUnit.MINUTES.between(session.getCreatedAt(), session.getCompletedAt());
+                session.setDurationMinutes((int) Math.max(1, mins));
+            } else {
+                session.setDurationMinutes(1);
+            }
+        }
+
         // session = sessionRepository.save(session);
 
         // ✅ Validate answers (simulated AI validation)
@@ -335,15 +351,16 @@ public class FocusSessionService {
             return 0;
         }
 
-        // ❌ Session too short = no coins
-        // if (duration < 15) {
-        // System.out.println("❌ No coins: Duration < 15 minutes");
-        // return 0;
-        // }
+        // ✅ Under 15 minutes (roadmap topic sessions): 1 coin at >= 80% quality
+        if (duration < 15) {
+            int coins = quality >= 80.0 ? 1 : 0;
+            System.out.println("🪙 < 15 min, quality: " + quality + "% → " + coins + " coin");
+            return coins;
+        }
 
         // ✅ 15-19 minutes: 1 coin ONLY at 100% quality
         if (duration >= 15 && duration <= 19) {
-            int coins = quality >= 100.0 ? 1 : 0;
+            int coins = quality >= 80.0 ? 1 : 0;
             System.out.println("🪙 15-19 min, quality: " + quality + "% → " + coins + " coin");
             return coins;
         }
